@@ -598,12 +598,11 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
 
   // ── API CALL via Supabase Edge Function ──
   async function callAnthropic(body) {
-    const { data: { session } } = await supabase.auth.getSession();
     return fetch(`${FUNCTIONS_URL}/${body.stream ? 'chat' : 'suggestions'}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
       },
       body: JSON.stringify(body)
     });
