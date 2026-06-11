@@ -431,31 +431,38 @@
 
   // ── PERSIST: save profile + full message history to chat_sessions table ──
   async function saveState() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('chat_sessions').upsert({
-      user_id: user.id,
-      profile,
-      messages,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase.from('chat_sessions').upsert({
+        user_id: session.user.id,
+        profile,
+        messages,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+      if (error) console.error('saveState error:', error);
+    } catch (e) { console.error('saveState failed:', e); }
   }
 
   // ── RESTORE: load saved state from chat_sessions table ──
   async function restoreState() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-    const { data } = await supabase
-      .from('chat_sessions')
-      .select('profile, messages')
-      .eq('user_id', user.id)
-      .single();
-    if (data?.profile && Object.keys(data.profile).length > 0) {
-      profile = data.profile;
-      messages = data.messages || [];
-      renderChatFromSaved();
-      return true;
-    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return false;
+      // maybeSingle() returns null (no error) when no row exists
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('profile, messages')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      if (error) { console.error('restoreState error:', error); return false; }
+      if (data?.profile && Object.keys(data.profile).length > 0) {
+        profile = data.profile;
+        messages = data.messages || [];
+        renderChatFromSaved();
+        return true;
+      }
+    } catch (e) { console.error('restoreState failed:', e); }
     return false;
   }
 
@@ -563,7 +570,18 @@
     renderStepIndicator();
   }
 
-  function startChat() {
+  async function startChat() {
+    // Check if user already has history in DB — don't overwrite it with empty messages
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: existing } = await supabase
+        .from('chat_sessions').select('messages').eq('user_id', session.user.id).maybeSingle();
+      if (existing?.messages?.length > 0) {
+        // Restore existing messages rather than starting fresh
+        messages = existing.messages;
+      }
+    }
+
     const bar = document.getElementById('profile-bar');
     const genderEmoji = {male:'👨',female:'👩',diverse:'🧑',no_answer:'🙂'}[profile.gender]||'🙂';
     const genderLabel = {male:'Mann',female:'Frau',diverse:'Divers',no_answer:'Anonym'}[profile.gender]||'';
@@ -578,6 +596,16 @@
 
     const isF = profile.gender === 'female';
     document.getElementById('welcome-title').textContent = isF ? 'Hallo! Ich bin deine Coachin.' : 'Hallo! Ich bin dein Coach.';
+
+    if (messages.length > 0) {
+      const container = document.getElementById('chat-messages');
+      container.innerHTML = '';
+      messages.slice(-60).forEach(m => addMessage(m.role, m.content));
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+        requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
+      }, 150);
+    }
 
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
