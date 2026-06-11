@@ -417,11 +417,13 @@
     window.location.href = 'login.html';
   };
 
+  // ── APP INIT (IIFE so we can use `return` instead of throw) ──
+  (async () => {
   // ── AUTH GUARD ──
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     window.location.href = 'login.html';
-    throw new Error('not authenticated'); // stops all further execution
+    return; // clean stop — no throw, no broken module state
   }
 
   // Logged in — show user info
@@ -841,6 +843,12 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     sendMessage, handleKey, autoResize, resetApp,
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
+  });
+  })().catch(err => {
+    console.error('App init error:', err);
+    // Fallback: zeige Onboarding statt leerem Screen
+    const ob = document.getElementById('screen-onboarding');
+    if (ob) ob.classList.add('active');
   });
 </script>
 </body>
