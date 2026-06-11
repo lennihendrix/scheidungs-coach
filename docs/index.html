@@ -265,6 +265,8 @@
 </head>
 <body>
 
+<div id="dbg" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#e53;color:#fff;padding:10px 16px;font-size:13px;font-family:monospace"></div>
+
 <div class="header">
   <div class="header-logo">⚖️</div>
   <div>
@@ -401,15 +403,26 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  function dbg(msg) {
+    const el = document.getElementById('dbg');
+    if (el) { el.style.display = 'block'; el.textContent = msg; }
+  }
+
+  dbg('1: Script gestartet');
+
   if (!window.supabase) {
-    document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;text-align:center"><h2>⚠️ Ladefehler</h2><p>Supabase konnte nicht geladen werden.<br>Bitte Seite neu laden.</p><button onclick="location.reload()" style="margin-top:16px;padding:12px 24px;background:#5B6EE8;color:white;border:none;border-radius:8px;font-size:16px">Neu laden</button></div>';
+    dbg('FEHLER: Supabase CDN nicht geladen');
     throw new Error('supabase not loaded');
   }
+
+  dbg('2: Supabase geladen');
   const { createClient } = window.supabase;
 
   const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
   const sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  dbg('3: Client erstellt');
 
   // ── VERSION ──
   fetch('version.json').then(r => r.json()).then(d => {
@@ -424,12 +437,15 @@
 
   // ── APP INIT (IIFE so we can use `return` instead of throw) ──
   (async () => {
+  dbg('4: Session wird geprüft...');
   // ── AUTH GUARD ──
   const { data: { session } } = await sbClient.auth.getSession();
   if (!session) {
+    dbg('5: Kein Session → Login');
     window.location.href = 'login.html';
-    return; // clean stop — no throw, no broken module state
+    return;
   }
+  dbg('6: Eingeloggt → App lädt...');
 
   // Logged in — show user info
   {
@@ -569,11 +585,14 @@
   let isStreaming = false;
 
   // ── INIT: try to restore saved state ──
+  dbg('7: Lade gespeicherten Zustand...');
   const restored = await restoreState();
+  dbg('8: restored=' + restored);
   if (!restored) {
     document.getElementById('screen-onboarding').classList.add('active');
     renderStepIndicator();
   }
+  dbg('9: Fertig — Debug kann jetzt entfernt werden');
 
   // ── STEP INDICATOR ──
   function renderStepIndicator() {
@@ -843,8 +862,8 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
   });
   })().catch(err => {
+    dbg('FEHLER: ' + err.message);
     console.error('App init error:', err);
-    // Fallback: zeige Onboarding statt leerem Screen
     const ob = document.getElementById('screen-onboarding');
     if (ob) ob.classList.add('active');
   });
