@@ -480,7 +480,11 @@
       // Show last 30 messages visually (performance)
       messages.slice(-30).forEach(m => addMessage(m.role, m.content));
       // Scroll to bottom
-      setTimeout(() => container.scrollTop = container.scrollHeight, 50);
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+        // Second pass after layout settles
+        requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
+      }, 150);
     }
 
     // Switch screens
