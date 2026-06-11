@@ -280,7 +280,7 @@
 </div>
 
 <!-- ONBOARDING -->
-<div id="screen-onboarding" class="screen">
+<div id="screen-onboarding" class="screen active">
   <div class="onboarding-hero">
     <div class="emoji">🤝</div>
     <h1>Du bist nicht allein.</h1>
@@ -429,6 +429,7 @@
   // ── AUTH GUARD ──
   const { data: { session } } = await sbClient.auth.getSession();
   if (!session) {
+    document.getElementById('screen-onboarding').classList.remove('active');
     window.location.href = 'login.html';
     return;
   }
@@ -573,7 +574,7 @@
   // ── INIT: try to restore saved state ──
   const restored = await restoreState();
   if (!restored) {
-    document.getElementById('screen-onboarding').classList.add('active');
+    // Onboarding ist schon per Default aktiv — nur Step-Indicator rendern
     renderStepIndicator();
   }
 
@@ -847,7 +848,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
   })().catch(err => {
     console.error('App init error:', err);
     const ob = document.getElementById('screen-onboarding');
-    if (ob) ob.classList.add('active');
+    if (ob && !ob.classList.contains('active')) ob.classList.add('active');
   });
 </script>
 </body>
