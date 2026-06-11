@@ -478,7 +478,6 @@
     }
 
     // Switch screens
-    document.getElementById('screen-apikey').classList.remove('active');
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
@@ -686,9 +685,8 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
         const errData = await res.json().catch(() => ({}));
         const errMsg = errData?.error?.message || `HTTP ${res.status}`;
         if (res.status === 401) {
-          addMessage('assistant', '🔑 API-Key ungültig. Bitte gib einen gültigen Key ein.');
-          localStorage.removeItem('scheidungscoach_apikey');
-          setTimeout(() => { apiKey=''; document.getElementById('screen-chat').classList.remove('active'); document.getElementById('screen-apikey').classList.add('active'); document.getElementById('reset-btn').style.display='none'; }, 2000);
+          addMessage('assistant', '🔐 Sitzung abgelaufen. Bitte neu einloggen.');
+          setTimeout(() => { supabase.auth.signOut(); window.location.href = 'login.html'; }, 2000);
         } else {
           addMessage('assistant', `Fehler: ${errMsg}`);
         }
