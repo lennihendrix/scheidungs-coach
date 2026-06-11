@@ -5,851 +5,262 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Scheidungs-Coach</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root { --brand: #5B6EE8; --border: #E5E7EB; --bg: #F9FAFB; --muted: #6B7280; }
 
-  :root {
-    --brand: #5B6EE8;
-    --brand-dark: #3D52D5;
-    --brand-light: #EEF0FD;
-    --text: #1A1A2E;
-    --text-muted: #6B7280;
-    --border: #E5E7EB;
-    --bg: #F9FAFB;
-    --white: #FFFFFF;
-    --radius: 16px;
-    --shadow: 0 4px 24px rgba(91,110,232,0.10);
-  }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  display: flex; flex-direction: column; height: 100dvh;
+  background: var(--bg);
+}
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-  }
+/* header */
+header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; background: #fff;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+header h1 { font-size: 15px; font-weight: 700; color: var(--brand); }
+header span { font-size: 11px; color: var(--muted); }
+header button {
+  margin-left: auto; background: none; border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 12px; font-size: 12px;
+  color: var(--muted); cursor: pointer; touch-action: manipulation;
+}
 
-  .header {
-    background: var(--white);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .header-logo { font-size: 24px; }
-  .header-title { font-size: 17px; font-weight: 700; color: var(--brand); }
-  .header-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
-  .header-reset {
-    margin-left: auto;
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 12px;
-    color: var(--text-muted);
-    cursor: pointer;
-    display: none;
-  }
-  .header-reset:hover { border-color: var(--brand); color: var(--brand); }
+/* status bar */
+#status {
+  font-size: 12px; color: #fff; text-align: center;
+  padding: 6px; flex-shrink: 0; display: none;
+}
+#status.ok  { background: #16a34a; }
+#status.err { background: #dc2626; }
 
-  .screen { display: none; flex-direction: column; flex: 1; }
-  .screen.active { display: flex; }
+/* messages */
+#msgs {
+  flex: 1; min-height: 0; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.msg { display: flex; gap: 8px; max-width: 85%; }
+.msg.ai   { align-self: flex-start; }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.av {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.ai   .av { background: #EEF0FD; }
+.user .av { background: #FEE2E2; }
+.bbl {
+  padding: 10px 13px; border-radius: 14px;
+  font-size: 14px; line-height: 1.6; word-break: break-word;
+}
+.ai   .bbl { background: #fff; border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+.user .bbl { background: var(--brand); color: #fff; border-bottom-right-radius: 3px; }
 
-  /* ── ONBOARDING ── */
-  #screen-onboarding {
-    align-items: center;
-    justify-content: flex-start;
-    padding: 24px 20px 40px;
-    overflow-y: auto;
-  }
-  .onboarding-hero {
-    text-align: center;
-    max-width: 480px;
-    width: 100%;
-    margin-bottom: 32px;
-  }
-  .onboarding-hero .emoji { font-size: 52px; margin-bottom: 12px; }
-  .onboarding-hero h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; line-height: 1.2; }
-  .onboarding-hero p { color: var(--text-muted); font-size: 15px; line-height: 1.5; }
+/* typing */
+.dots { display: flex; gap: 4px; padding: 4px 0; }
+.dots span {
+  width: 7px; height: 7px; background: var(--muted);
+  border-radius: 50%; animation: b .8s infinite;
+}
+.dots span:nth-child(2) { animation-delay: .15s; }
+.dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes b { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
 
-  .form-card {
-    background: var(--white);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 24px;
-    max-width: 480px;
-    width: 100%;
-  }
-
-  .step { display: none; }
-  .step.active { display: block; }
-
-  .step-indicator {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 20px;
-    justify-content: center;
-  }
-  .step-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--border);
-    transition: all .3s;
-  }
-  .step-dot.done { background: var(--brand); }
-  .step-dot.active { background: var(--brand); width: 24px; border-radius: 4px; }
-
-  .step-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-  .step-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
-
-  .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-  .option-grid.single { grid-template-columns: 1fr; }
-
-  .option-btn {
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 12px;
-    text-align: center;
-    cursor: pointer;
-    background: var(--white);
-    transition: all .2s;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .option-btn .opt-emoji { font-size: 24px; display: block; margin-bottom: 6px; }
-  .option-btn:hover { border-color: var(--brand); background: var(--brand-light); }
-  .option-btn.selected { border-color: var(--brand); background: var(--brand-light); color: var(--brand); font-weight: 600; }
-
-  .form-group { margin-bottom: 16px; }
-  .form-label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .5px; }
-  .form-select {
-    width: 100%;
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 15px;
-    font-family: inherit;
-    color: var(--text);
-    background: var(--white);
-    -webkit-appearance: none;
-  }
-  .children-count { display: none; margin-top: 10px; }
-  .children-count.visible { display: block; }
-
-  .btn-row { display: flex; gap: 10px; margin-top: 4px; }
-  .btn {
-    flex: 1; padding: 14px; border-radius: 12px;
-    font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all .2s;
-  }
-  .btn-primary { background: var(--brand); color: white; }
-  .btn-primary:hover { background: var(--brand-dark); transform: translateY(-1px); }
-  .btn-primary:disabled { background: var(--border); color: var(--text-muted); transform: none; cursor: default; }
-  .btn-secondary { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
-  .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }
-
-  /* ── CHAT ── */
-  #screen-chat { flex-direction: column; height: 100dvh; overflow: hidden; }
-
-  .profile-bar {
-    background: var(--brand-light);
-    border-bottom: 1px solid rgba(91,110,232,0.15);
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-  }
-  .profile-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: white; border: 1px solid rgba(91,110,232,0.2);
-    border-radius: 20px; padding: 4px 10px;
-    font-size: 12px; font-weight: 500; color: var(--brand-dark);
-  }
-
-  .chat-messages {
-    flex: 1; overflow-y: auto; padding: 16px;
-    display: flex; flex-direction: column; gap: 12px;
-  }
-
-  .message { display: flex; gap: 10px; max-width: 85%; animation: msgIn .25s ease; }
-  @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  .message.user { align-self: flex-end; flex-direction: row-reverse; }
-  .message.assistant { align-self: flex-start; }
-
-  .msg-avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; flex-shrink: 0;
-  }
-  .assistant .msg-avatar { background: var(--brand-light); }
-  .user .msg-avatar { background: #FEE2E2; }
-
-  .msg-bubble { padding: 12px 15px; border-radius: 16px; font-size: 15px; line-height: 1.55; }
-  .assistant .msg-bubble {
-    background: var(--white); border: 1px solid var(--border);
-    border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-  .user .msg-bubble { background: var(--brand); color: white; border-bottom-right-radius: 4px; }
-
-  .typing-indicator { display: flex; gap: 4px; padding: 4px 2px; }
-  .typing-indicator span {
-    width: 7px; height: 7px; background: var(--text-muted);
-    border-radius: 50%; animation: bounce .8s infinite;
-  }
-  .typing-indicator span:nth-child(2) { animation-delay: .15s; }
-  .typing-indicator span:nth-child(3) { animation-delay: .3s; }
-  @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
-
-  .suggestions-area {
-    padding: 10px 16px 6px; flex-shrink: 0;
-    border-top: 1px solid var(--border); background: var(--white);
-  }
-  .suggestions-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
-  .suggestions-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-  .suggestions-scroll::-webkit-scrollbar { display: none; }
-  .suggestion-chip {
-    flex-shrink: 0; border: 1.5px solid var(--brand); color: var(--brand);
-    background: var(--white); border-radius: 20px; padding: 7px 14px;
-    font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; white-space: nowrap;
-  }
-  .suggestion-chip:hover { background: var(--brand); color: white; }
-
-  .chat-input-area {
-    padding: 12px 16px;
-    padding-bottom: 12px;
-    padding-bottom: max(12px, calc(env(safe-area-inset-bottom) + 4px));
-    background: var(--white); border-top: 1px solid var(--border);
-    display: flex; gap: 10px; align-items: center; flex-shrink: 0;
-  }
-  .chat-input-wrap {
-    flex: 1; border: 2px solid var(--border); border-radius: 12px;
-    padding: 10px 14px; display: flex; align-items: flex-end; gap: 8px;
-    transition: border-color .2s; background: var(--bg);
-  }
-  .chat-input-wrap:focus-within { border-color: var(--brand); background: white; }
-  #chat-input {
-    flex: 1; border: none; background: none; font-size: 15px;
-    font-family: inherit; color: var(--text); resize: none; max-height: 120px; line-height: 1.4; outline: none;
-  }
-  #chat-input::placeholder { color: var(--text-muted); }
-  #send-btn {
-    width: 44px; height: 44px; border-radius: 10px; background: var(--brand);
-    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; transition: all .2s; font-size: 18px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  #send-btn:hover { background: var(--brand-dark); transform: scale(1.05); }
-  #send-btn:disabled { background: var(--border); transform: none; cursor: default; }
-
-  .welcome-card {
-    background: linear-gradient(135deg, var(--brand-light), white);
-    border: 1px solid rgba(91,110,232,0.2); border-radius: var(--radius);
-    padding: 18px; text-align: center; max-width: 340px; align-self: center; margin: 8px auto;
-  }
-  .welcome-card .wc-emoji { font-size: 36px; margin-bottom: 8px; }
-  .welcome-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--brand-dark); }
-  .welcome-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-
-  @media (min-width: 600px) {
-    #screen-onboarding { padding: 40px 20px 60px; }
-    .message { max-width: 70%; }
-  }
+/* input */
+#input-row {
+  display: flex; gap: 8px; padding: 10px 12px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: #fff; border-top: 1px solid var(--border); flex-shrink: 0;
+}
+textarea {
+  flex: 1; border: 2px solid var(--border); border-radius: 12px;
+  padding: 10px 13px; font-size: 16px; font-family: inherit;
+  resize: none; max-height: 120px; line-height: 1.4; background: #fff;
+}
+textarea:focus { outline: none; border-color: var(--brand); }
+#send {
+  width: 44px; height: 44px; border-radius: 12px; border: none;
+  background: var(--brand); color: #fff; font-size: 18px;
+  cursor: pointer; flex-shrink: 0; align-self: flex-end;
+  touch-action: manipulation;
+}
+#send:disabled { background: var(--border); }
 </style>
 </head>
 <body>
 
-
-<div class="header">
-  <div class="header-logo">⚖️</div>
+<header>
   <div>
-    <div class="header-title">Scheidungs-Coach</div>
-    <div class="header-sub">Dein persönlicher Begleiter &middot; <span id="version-label">v1.0</span></div>
+    <h1>⚖️ Scheidungs-Coach</h1>
+    <span id="ver"></span>
   </div>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-    <span id="user-badge" style="font-size:12px;color:var(--text-muted);display:none"></span>
-    <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
-    <button class="header-reset" id="logout-btn" onclick="handleLogout()" style="display:none">Abmelden</button>
-  </div>
-</div>
+  <button onclick="doLogout()">Abmelden</button>
+</header>
 
-<!-- ONBOARDING -->
-<div id="screen-onboarding" class="screen active">
-  <div class="onboarding-hero">
-    <div class="emoji">🤝</div>
-    <h1>Du bist nicht allein.</h1>
-    <p>Beantworte ein paar kurze Fragen, damit ich dir wirklich helfen kann — persönlich und passend zu deiner Situation.</p>
-  </div>
+<div id="status"></div>
 
-  <div class="form-card">
-    <div class="step-indicator" id="step-indicator"></div>
+<div id="msgs"></div>
 
-    <!-- Step 1 -->
-    <div class="step active" id="step-1">
-      <div class="step-title">Wer bist du?</div>
-      <div class="step-sub">Damit ich dich richtig ansprechen kann.</div>
-      <div class="option-grid">
-        <button class="option-btn" data-field="gender" data-value="male" onclick="selectOption(this)"><span class="opt-emoji">👨</span>Mann</button>
-        <button class="option-btn" data-field="gender" data-value="female" onclick="selectOption(this)"><span class="opt-emoji">👩</span>Frau</button>
-        <button class="option-btn" data-field="gender" data-value="diverse" onclick="selectOption(this)"><span class="opt-emoji">🧑</span>Divers</button>
-        <button class="option-btn" data-field="gender" data-value="no_answer" onclick="selectOption(this)"><span class="opt-emoji">🤷</span>Keine Angabe</button>
-      </div>
-      <div class="btn-row"><button class="btn btn-primary" id="next-1" onclick="nextStep(2)" disabled>Weiter →</button></div>
-    </div>
-
-    <!-- Step 2 -->
-    <div class="step" id="step-2">
-      <div class="step-title">Wie ist deine aktuelle Situation?</div>
-      <div class="step-sub">In welcher Phase der Trennung befindest du dich?</div>
-      <div class="option-grid single">
-        <button class="option-btn" data-field="status" data-value="trennung" onclick="selectOption(this)"><span class="opt-emoji">💔</span>Frisch getrennt – wir leben noch zusammen</button>
-        <button class="option-btn" data-field="status" data-value="ausgezogen" onclick="selectOption(this)"><span class="opt-emoji">🏠</span>Getrennt & einer ist ausgezogen</button>
-        <button class="option-btn" data-field="status" data-value="scheidung" onclick="selectOption(this)"><span class="opt-emoji">⚖️</span>Scheidungsverfahren läuft</button>
-        <button class="option-btn" data-field="status" data-value="geschieden" onclick="selectOption(this)"><span class="opt-emoji">✅</span>Scheidung abgeschlossen</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="prevStep(1)">← Zurück</button>
-        <button class="btn btn-primary" id="next-2" onclick="nextStep(3)" disabled>Weiter →</button>
-      </div>
-    </div>
-
-    <!-- Step 3 -->
-    <div class="step" id="step-3">
-      <div class="step-title">Seit wann?</div>
-      <div class="step-sub">Ungefähr, kein exaktes Datum nötig.</div>
-      <div class="option-grid">
-        <button class="option-btn" data-field="since" data-value="wenige Wochen" onclick="selectOption(this)"><span class="opt-emoji">📅</span>Wenige Wochen</button>
-        <button class="option-btn" data-field="since" data-value="2–6 Monaten" onclick="selectOption(this)"><span class="opt-emoji">📆</span>2–6 Monate</button>
-        <button class="option-btn" data-field="since" data-value="6–12 Monaten" onclick="selectOption(this)"><span class="opt-emoji">🗓️</span>6–12 Monate</button>
-        <button class="option-btn" data-field="since" data-value="über einem Jahr" onclick="selectOption(this)"><span class="opt-emoji">⏳</span>Über 1 Jahr</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="prevStep(2)">← Zurück</button>
-        <button class="btn btn-primary" id="next-3" onclick="nextStep(4)" disabled>Weiter →</button>
-      </div>
-    </div>
-
-    <!-- Step 4 -->
-    <div class="step" id="step-4">
-      <div class="step-title">Habt ihr gemeinsame Kinder?</div>
-      <div class="step-sub">Das beeinflusst viele Themen wie Unterhalt und Sorgerecht.</div>
-      <div class="option-grid">
-        <button class="option-btn" data-field="children" data-value="yes" onclick="selectOption(this); showChildCount()"><span class="opt-emoji">👶</span>Ja</button>
-        <button class="option-btn" data-field="children" data-value="no" onclick="selectOption(this); hideChildCount()"><span class="opt-emoji">🚫</span>Nein</button>
-      </div>
-      <div class="children-count" id="children-count-wrap">
-        <div class="form-group">
-          <label class="form-label">Wie viele Kinder?</label>
-          <select class="form-select" id="children-count" onchange="profile.childrenCount = this.value">
-            <option value="1">1 Kind</option><option value="2">2 Kinder</option>
-            <option value="3">3 Kinder</option><option value="4+">4 oder mehr</option>
-          </select>
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="prevStep(3)">← Zurück</button>
-        <button class="btn btn-primary" id="next-4" onclick="nextStep(5)" disabled>Weiter →</button>
-      </div>
-    </div>
-
-    <!-- Step 5 -->
-    <div class="step" id="step-5">
-      <div class="step-title">Was beschäftigt dich am meisten?</div>
-      <div class="step-sub">Optional — Mehrfachauswahl möglich.</div>
-      <div class="option-grid">
-        <button class="option-btn" data-value="Emotionale Verarbeitung" onclick="toggleConcern(this)"><span class="opt-emoji">💭</span>Emotionen & Verarbeitung</button>
-        <button class="option-btn" data-value="Rechtliche Fragen" onclick="toggleConcern(this)"><span class="opt-emoji">⚖️</span>Rechtliche Fragen</button>
-        <button class="option-btn" data-value="Finanzen & Unterhalt" onclick="toggleConcern(this)"><span class="opt-emoji">💰</span>Finanzen & Unterhalt</button>
-        <button class="option-btn" data-value="Kinder & Sorgerecht" onclick="toggleConcern(this)"><span class="opt-emoji">👨‍👧</span>Kinder & Sorgerecht</button>
-        <button class="option-btn" data-value="Neustart & Zukunft" onclick="toggleConcern(this)"><span class="opt-emoji">🌱</span>Neustart & Zukunft</button>
-        <button class="option-btn" data-value="Kommunikation mit Ex" onclick="toggleConcern(this)"><span class="opt-emoji">💬</span>Kommunikation mit Ex</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="prevStep(4)">← Zurück</button>
-        <button class="btn btn-primary" onclick="startChat()">Zum Coach →</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- CHAT -->
-<div id="screen-chat" class="screen">
-  <div class="profile-bar" id="profile-bar"></div>
-  <div class="chat-messages" id="chat-messages">
-    <div class="welcome-card">
-      <div class="wc-emoji">👋</div>
-      <h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3>
-      <p>Ich bin hier, um dir zuzuhören und zu helfen. Stell mir eine Frage oder wähle einen Vorschlag unten.</p>
-    </div>
-  </div>
-  <div class="suggestions-area">
-    <div class="suggestions-label">Vorgeschlagene Fragen</div>
-    <div class="suggestions-scroll" id="suggestions"></div>
-  </div>
-  <div class="chat-input-area">
-    <div class="chat-input-wrap">
-      <textarea id="chat-input" placeholder="Deine Frage..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-    </div>
-    <button id="send-btn" onclick="sendMessage()">➤</button>
-  </div>
+<div id="input-row">
+  <textarea id="inp" rows="1" placeholder="Schreib mir…"
+    oninput="resize(this)"
+    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
+  ></textarea>
+  <button id="send" onclick="send()">➤</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  if (!window.supabase) {
-    throw new Error('supabase not loaded');
-  }
+const SB  = 'https://faodupnfqvugeeftjfbi.supabase.co';
+const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
+const FN  = SB + '/functions/v1';
+const sb  = window.supabase.createClient(SB, KEY);
 
-  const { createClient } = window.supabase;
+let msgs = [], busy = false, uid, token;
 
-  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
-  const sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+fetch('version.json').then(r=>r.json()).then(d=>{ document.getElementById('ver').textContent='v'+d.version }).catch(()=>{});
 
+function flash(msg, ok=true) {
+  const el = document.getElementById('status');
+  el.textContent = msg; el.className = ok ? 'ok' : 'err'; el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
 
-  // ── VERSION ──
-  fetch('version.json').then(r => r.json()).then(d => {
-    document.getElementById('version-label').textContent = 'v' + d.version;
-  }).catch(() => {});
+function doLogout() { sb.auth.signOut().finally(() => location.href = 'login.html'); }
 
-  // ── GLOBAL HANDLERS (must be set before any await) ──
-  window.handleLogout = async () => {
-    try { await sbClient.auth.signOut(); } catch(e) { console.warn('signOut error:', e); }
-    window.location.href = 'login.html';
-  };
-
-  // ── APP INIT (IIFE so we can use `return` instead of throw) ──
-  (async () => {
-  // ── AUTH GUARD ──
-  const { data: { session } } = await sbClient.auth.getSession();
-  if (!session) {
-    document.getElementById('screen-onboarding').classList.remove('active');
-    window.location.href = 'login.html';
-    return;
-  }
-
-  // Logged in — show user info
-  {
-    const user = session.user;
-    const name = user.user_metadata?.full_name || user.email.split('@')[0];
-    const badge = document.getElementById('user-badge');
-    badge.textContent = '👤 ' + name;
-    badge.style.display = 'inline';
-    document.getElementById('logout-btn').style.display = 'block';
-  }
-
-  // ── PERSISTENCE: Supabase REST direkt ──
-  // Alle DB-Operationen über diese Funktionen. Kein localStorage, kein Cache.
-
-  function _restHeaders(token) {
-    return {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${token}`,
+// ── DB ──
+async function save() {
+  const res = await fetch(`${SB}/rest/v1/chat_sessions?on_conflict=user_id`, {
+    method: 'POST',
+    headers: {
+      'apikey': KEY, 'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json',
-    };
+      'Prefer': 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify({ user_id: uid, profile: {}, messages: msgs, updated_at: new Date().toISOString() }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    flash('Speichern fehlgeschlagen: ' + res.status + ' ' + t, false);
+    console.error('save', res.status, t);
   }
+}
 
-  // Speichert beliebige Felder via UPSERT (atomar, keine Race Conditions)
-  async function dbSave(fields) {
-    try {
-      const { data: { session: s } } = await sbClient.auth.getSession();
-      if (!s) { console.warn('[db] kein Session beim Speichern'); return; }
-      const body = JSON.stringify({
-        user_id: s.user.id,
-        ...fields,
-        updated_at: new Date().toISOString()
-      });
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/chat_sessions?on_conflict=user_id`,
-        {
-          method: 'POST',
-          headers: { ..._restHeaders(s.access_token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-          body,
-        }
-      );
-      if (!res.ok) console.error('[db] Speichern fehlgeschlagen:', res.status, await res.text());
-      else console.log('[db] gespeichert:', Object.keys(fields).join(', '));
-    } catch (e) {
-      console.error('[db] Speichern Exception:', e);
-    }
-  }
+async function load() {
+  const res = await fetch(`${SB}/rest/v1/chat_sessions?select=messages&user_id=eq.${uid}&limit=1`, {
+    headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + token },
+  });
+  if (!res.ok) { console.error('load', res.status); return []; }
+  const rows = await res.json();
+  return Array.isArray(rows[0]?.messages) ? rows[0].messages : [];
+}
 
-  // Lädt den gespeicherten Zustand aus der DB
-  async function dbLoad() {
-    try {
-      const { data: { session: s } } = await sbClient.auth.getSession();
-      if (!s) return null;
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/chat_sessions?select=profile,messages&user_id=eq.${s.user.id}&limit=1`,
-        { headers: _restHeaders(s.access_token) }
-      );
-      if (!res.ok) { console.error('[db] Laden fehlgeschlagen:', res.status); return null; }
-      const rows = await res.json();
-      console.log('[db] Geladen:', rows.length, 'Zeilen');
-      return rows[0] || null;
-    } catch (e) {
-      console.error('[db] Laden Exception:', e);
-      return null;
-    }
-  }
+// ── UI ──
+function bubble(role, text) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + (role === 'assistant' ? 'ai' : 'user');
+  d.innerHTML = `<div class="av">${role==='assistant'?'🤝':'🙂'}</div><div class="bbl">${esc(text)}</div>`;
+  document.getElementById('msgs').appendChild(d);
+  document.getElementById('msgs').scrollTop = 99999;
+  return d.querySelector('.bbl');
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+function resize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
 
-  // Profil speichern (ohne messages zu überschreiben)
-  async function saveProfile() {
-    await dbSave({ profile });
-  }
+async function send() {
+  const inp = document.getElementById('inp');
+  const text = inp.value.trim();
+  if (!text || busy) return;
+  inp.value = ''; resize(inp);
+  busy = true; document.getElementById('send').disabled = true;
 
-  // Kompletten Zustand speichern (profil + nachrichten)
-  async function saveState() {
-    await dbSave({ profile, messages });
-  }
+  bubble('user', text);
+  msgs.push({ role: 'user', content: text });
 
-  // Zustand wiederherstellen
-  async function restoreState() {
-    const data = await dbLoad();
-    // Wiederherstellen wenn Profil vorhanden (mind. 1 Feld gesetzt)
-    if (data && data.profile && Object.keys(data.profile).length > 0) {
-      profile = data.profile;
-      messages = data.messages || [];
-      renderChatFromSaved();
-      return true;
-    }
-    return false;
-  }
+  // typing indicator
+  const ti = document.createElement('div');
+  ti.className = 'msg ai'; ti.id = 'ti';
+  ti.innerHTML = '<div class="av">🤝</div><div class="bbl"><div class="dots"><span></span><span></span><span></span></div></div>';
+  document.getElementById('msgs').appendChild(ti);
+  document.getElementById('msgs').scrollTop = 99999;
 
-  function renderChatFromSaved() {
-    // Build profile bar
-    const bar = document.getElementById('profile-bar');
-    const genderEmoji = {male:'👨',female:'👩',diverse:'🧑',no_answer:'🙂'}[profile.gender]||'🙂';
-    const genderLabel = {male:'Mann',female:'Frau',diverse:'Divers',no_answer:'Anonym'}[profile.gender]||'';
-    const statusLabel = {trennung:'Getrennt',ausgezogen:'Ausgezogen',scheidung:'Scheidung läuft',geschieden:'Geschieden'}[profile.status]||'';
-    const childLabel = profile.children==='yes' ? `👶 ${profile.childrenCount||'1'} Kind${(profile.childrenCount||1)>1?'er':''}` : '';
-    bar.innerHTML = [
-      `<span class="profile-badge">${genderEmoji} ${genderLabel}</span>`,
-      statusLabel ? `<span class="profile-badge">⚖️ ${statusLabel}</span>` : '',
-      profile.since ? `<span class="profile-badge">🕐 Seit ${profile.since}</span>` : '',
-      childLabel ? `<span class="profile-badge">${childLabel}</span>` : '',
-    ].filter(Boolean).join('');
-
-    // Restore chat history
-    const container = document.getElementById('chat-messages');
-    container.innerHTML = '';
-    if (messages.length === 0) {
-      const isF = profile.gender === 'female';
-      container.innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3>${isF?'Hallo! Ich bin deine Coachin.':'Hallo! Ich bin dein Coach.'}</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
-    } else {
-      const VISIBLE = 60;
-      if (messages.length > VISIBLE) {
-        const hidden = messages.length - VISIBLE;
-        container.innerHTML = `<div style="text-align:center;padding:12px 16px;font-size:13px;color:var(--text-muted)">↑ ${hidden} ältere Nachrichten im Kontext (werden vom Coach berücksichtigt)</div>`;
-      }
-      messages.slice(-VISIBLE).forEach(m => addMessage(m.role, m.content));
-      // Scroll to bottom
-      setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-        // Second pass after layout settles
-        requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
-      }, 150);
-    }
-
-    // Switch screens
-    document.getElementById('screen-onboarding').classList.remove('active');
-    document.getElementById('screen-chat').classList.add('active');
-    document.getElementById('reset-btn').style.display = 'block';
-    loadSuggestions();
-  }
-
-  const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.supabase.co/functions/v1';
-  const TOTAL_STEPS = 5;
-  let currentStep = 1;
-  let profile = {};
-  let messages = [];
-  let isStreaming = false;
-
-  // ── INIT: try to restore saved state ──
-  const restored = await restoreState();
-  if (!restored) {
-    // Onboarding ist schon per Default aktiv — nur Step-Indicator rendern
-    renderStepIndicator();
-  }
-
-  // ── STEP INDICATOR ──
-  function renderStepIndicator() {
-    const el = document.getElementById('step-indicator');
-    el.innerHTML = Array.from({length: TOTAL_STEPS}, (_, i) => {
-      const n = i + 1;
-      const cls = n < currentStep ? 'done' : n === currentStep ? 'active' : '';
-      return `<div class="step-dot ${cls}"></div>`;
-    }).join('');
-  }
-
-  function selectOption(btn) {
-    const field = btn.dataset.field;
-    profile[field] = btn.dataset.value;
-    btn.closest('.option-grid').querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    const nb = document.getElementById(`next-${currentStep}`);
-    if (nb) nb.disabled = false;
-  }
-
-  function toggleConcern(btn) {
-    if (!Array.isArray(profile.concerns)) profile.concerns = [];
-    const val = btn.dataset.value;
-    if (btn.classList.contains('selected')) {
-      btn.classList.remove('selected');
-      profile.concerns = profile.concerns.filter(v => v !== val);
-    } else {
-      btn.classList.add('selected');
-      profile.concerns.push(val);
-    }
-  }
-
-  function showChildCount() { document.getElementById('children-count-wrap').classList.add('visible'); profile.childrenCount = '1'; }
-  function hideChildCount() { document.getElementById('children-count-wrap').classList.remove('visible'); delete profile.childrenCount; }
-
-  function nextStep(n) {
-    document.getElementById(`step-${currentStep}`).classList.remove('active');
-    currentStep = n;
-    document.getElementById(`step-${currentStep}`).classList.add('active');
-    renderStepIndicator();
-    window.scrollTo({top: 0, behavior: 'smooth'});
-  }
-  function prevStep(n) {
-    document.getElementById(`step-${currentStep}`).classList.remove('active');
-    currentStep = n;
-    document.getElementById(`step-${currentStep}`).classList.add('active');
-    renderStepIndicator();
-  }
-
-  async function startChat() {
-    // Check if user already has history in DB — don't overwrite it with empty messages
-    const bar = document.getElementById('profile-bar');
-    const genderEmoji = {male:'👨',female:'👩',diverse:'🧑',no_answer:'🙂'}[profile.gender]||'🙂';
-    const genderLabel = {male:'Mann',female:'Frau',diverse:'Divers',no_answer:'Anonym'}[profile.gender]||'';
-    const statusLabel = {trennung:'Getrennt',ausgezogen:'Ausgezogen',scheidung:'Scheidung läuft',geschieden:'Geschieden'}[profile.status]||'';
-    const childLabel = profile.children==='yes' ? `👶 ${profile.childrenCount||'1'} Kind${(profile.childrenCount||1)>1?'er':''}` : '';
-    bar.innerHTML = [
-      `<span class="profile-badge">${genderEmoji} ${genderLabel}</span>`,
-      statusLabel ? `<span class="profile-badge">⚖️ ${statusLabel}</span>` : '',
-      profile.since ? `<span class="profile-badge">🕐 Seit ${profile.since}</span>` : '',
-      childLabel ? `<span class="profile-badge">${childLabel}</span>` : '',
-    ].filter(Boolean).join('');
-
-    const isF = profile.gender === 'female';
-    document.getElementById('welcome-title').textContent = isF ? 'Hallo! Ich bin deine Coachin.' : 'Hallo! Ich bin dein Coach.';
-
-    document.getElementById('screen-onboarding').classList.remove('active');
-    document.getElementById('screen-chat').classList.add('active');
-    document.getElementById('reset-btn').style.display = 'block';
-    await saveProfile(); // await — sonst kann die Seite sich schließen bevor gespeichert wird
-    loadSuggestions();
-  }
-
-  // ── SYSTEM PROMPT ──
-  function buildSystemPrompt() {
-    const gender = {male:'Mann',female:'Frau',diverse:'diverse Person',no_answer:'Person'}[profile.gender]||'Person';
-    const status = {trennung:'in der Trennungsphase',ausgezogen:'bereits ausgezogen',scheidung:'im laufenden Scheidungsverfahren',geschieden:'bereits geschieden'}[profile.status]||'in einer Trennungssituation';
-    const since = profile.since ? `seit ${profile.since}` : '';
-    const children = profile.children==='yes' ? `hat ${profile.childrenCount||'ein oder mehrere'} Kind(er)` : 'hat keine Kinder';
-    const concerns = profile.concerns?.length ? `- Hauptanliegen: ${Array.isArray(profile.concerns)?profile.concerns.join(', '):profile.concerns}` : '';
-
-    return `Du bist ein einfühlsamer, professioneller Scheidungs-Coach. Du hilfst Menschen dabei, die emotionalen, praktischen und rechtlichen Herausforderungen einer Trennung oder Scheidung zu bewältigen.
-
-Über den Nutzer:
-- Geschlecht: ${gender}
-- Situation: ${status}${since?', '+since:''}
-- Kinder: ${children}
-${concerns}
-
-Deine Rolle:
-- Sei empathisch, verständnisvoll und unterstützend
-- Gib praktische, konkrete Ratschläge
-- Beachte die spezifische Situation des Nutzers
-- Weise bei rechtlichen Fragen auf die Notwendigkeit eines Anwalts hin
-- Antworte auf Deutsch, klar und in angemessener Länge (2-5 Sätze für einfache Fragen, mehr wenn nötig)
-- Duze den Nutzer IMMER — niemals siezen, kein "Sie" oder "Ihnen"
-
-Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen oder komplexen Rechtsfragen weise auf professionelle Hilfe hin.`;
-  }
-
-  // ── API CALL via Supabase Edge Function ──
-  async function callAnthropic(body) {
-    return fetch(`${FUNCTIONS_URL}/${body.stream ? 'chat' : 'suggestions'}`, {
+  try {
+    const res = await fetch(`${FN}/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-      },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + KEY },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 1024, stream: true,
+        system: 'Du bist ein einfühlsamer Scheidungs-Coach. Sei empathisch, konkret, duze immer, antworte auf Deutsch.',
+        messages: msgs.slice(-50).map(m => ({ role: m.role, content: m.content })),
+      }),
     });
-  }
 
-  // ── SUGGESTIONS ──
-  async function loadSuggestions() {
-    const container = document.getElementById('suggestions');
-    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Wird geladen…</span>';
-    const gender = {male:'Mann',female:'Frau',diverse:'diverse Person'}[profile.gender]||'Person';
-    const status = {trennung:'Trennungsphase',ausgezogen:'ausgezogen',scheidung:'Scheidungsverfahren',geschieden:'geschieden'}[profile.status]||'Trennung';
-    const children = profile.children==='yes'?'mit Kindern':'ohne Kinder';
-    const recent = messages.slice(-6).map(m=>`${m.role}: ${m.content}`).join('\n');
-    try {
-      const res = await callAnthropic({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 400,
-        messages: [{role:'user', content:`Du bist Assistent für einen Scheidungs-Coach. Generiere 5 kurze Fragen (max. 8 Wörter je Frage), die ein ${gender} in der ${status} ${children} dem Coach stellen könnte — also Fragen aus Nutzerperspektive, z.B. "Was passiert beim Trennungsjahr?" oder "Wie berechne ich Unterhalt?".\n\nBisheriger Chatverlauf:\n${recent||'(noch kein Chat)'}\n\nGib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen. Bevorzuge noch nicht besprochene, für die Situation besonders relevante Themen.`}]
-      });
-      const data = await res.json();
-      const suggestions = (data.content?.[0]?.text||'').split('\n').map(s=>s.trim()).filter(s=>s.length>5&&s.length<80).slice(0,5);
-      container.innerHTML = '';
-      suggestions.forEach(s => {
-        const chip = document.createElement('button');
-        chip.className = 'suggestion-chip';
-        chip.textContent = s;
-        chip.onclick = () => { document.getElementById('chat-input').value = s; sendMessage(); };
-        container.appendChild(chip);
-      });
-    } catch { container.innerHTML = ''; }
-  }
+    document.getElementById('ti')?.remove();
 
-  // ── CHAT ──
-  function addMessage(role, content) {
-    const avatarEmoji = role==='assistant' ? '🤝' : ({male:'👨',female:'👩'}[profile.gender]||'🙂');
-    const div = document.createElement('div');
-    div.className = `message ${role}`;
-    div.innerHTML = `<div class="msg-avatar">${avatarEmoji}</div><div class="msg-bubble">${escapeHtml(content)}</div>`;
-    const c = document.getElementById('chat-messages');
-    c.appendChild(div);
-    c.scrollTop = c.scrollHeight;
-    return div.querySelector('.msg-bubble');
-  }
-
-  function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
-
-  function addTyping() {
-    const div = document.createElement('div');
-    div.className = 'message assistant'; div.id = 'typing-msg';
-    div.innerHTML = `<div class="msg-avatar">🤝</div><div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
-    const c = document.getElementById('chat-messages');
-    c.appendChild(div); c.scrollTop = c.scrollHeight;
-  }
-  function removeTyping() { document.getElementById('typing-msg')?.remove(); }
-
-  async function sendMessage() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text || isStreaming) return;
-    input.value = ''; autoResize(input);
-    document.getElementById('send-btn').disabled = true;
-    isStreaming = true;
-    addMessage('user', text);
-    messages.push({role:'user', content:text});
-    addTyping();
-
-    try {
-      const res = await callAnthropic({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        stream: true,
-        system: buildSystemPrompt(),
-        // Send up to last 100 messages for context (token safety), full history stays in DB
-        messages: messages.slice(-100).map(m=>({role:m.role,content:m.content}))
-      });
-      removeTyping();
-
-      // Handle non-200 responses (auth errors, rate limits, etc.)
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        const errMsg = errData?.error?.message || `HTTP ${res.status}`;
-        if (res.status === 401) {
-          addMessage('assistant', '🔐 Sitzung abgelaufen. Bitte neu einloggen.');
-          setTimeout(() => { sbClient.auth.signOut(); window.location.href = 'login.html'; }, 2000);
-        } else {
-          addMessage('assistant', `Fehler: ${errMsg}`);
-        }
-        isStreaming = false;
-        document.getElementById('send-btn').disabled = false;
-        return;
-      }
-
-      const bubble = addMessage('assistant','');
-      let fullText = '';
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      bubble('assistant', 'Fehler ' + res.status + ': ' + (e?.error?.message || ''));
+    } else {
+      const bbl = bubble('assistant', '');
+      let full = '', buf = '';
+      const reader = res.body.getReader(), dec = new TextDecoder();
       while (true) {
-        const {done,value} = await reader.read();
+        const { done, value } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value,{stream:true});
-        const lines = buffer.split('\n'); buffer = lines.pop();
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n'); buf = lines.pop();
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (data==='[DONE]') continue;
+          const raw = line.slice(6).trim();
+          if (raw === '[DONE]') continue;
           try {
-            const ev = JSON.parse(data);
-            if (ev.type==='content_block_delta'&&ev.delta?.type==='text_delta') {
-              fullText += ev.delta.text;
-              bubble.innerHTML = escapeHtml(fullText);
-              document.getElementById('chat-messages').scrollTop = 9999;
-            } else if (ev.type==='error') {
-              fullText += `\n\n⚠️ ${ev.error?.message||'API-Fehler'}`;
-              bubble.innerHTML = escapeHtml(fullText);
+            const ev = JSON.parse(raw);
+            if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+              full += ev.delta.text;
+              bbl.innerHTML = esc(full);
+              document.getElementById('msgs').scrollTop = 99999;
             }
-          } catch {}
+          } catch (_) {}
         }
       }
-      messages.push({role:'assistant',content:fullText});
-      saveState();
-      loadSuggestions();
-    } catch(e) {
-      removeTyping();
-      addMessage('assistant', `Verbindungsfehler: ${e.message}. Bitte prüfe deine Internetverbindung.`);
+      msgs.push({ role: 'assistant', content: full });
+      await save();
     }
-    isStreaming = false;
-    document.getElementById('send-btn').disabled = false;
-    document.getElementById('chat-input').focus();
+  } catch (e) {
+    document.getElementById('ti')?.remove();
+    bubble('assistant', 'Verbindungsfehler: ' + e.message);
   }
 
-  function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendMessage(); } }
-  function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+  busy = false;
+  document.getElementById('send').disabled = false;
+  document.getElementById('inp').focus();
+}
 
-  function resetApp() {
-    profile = {}; messages = []; currentStep = 1;
-    sbClient.auth.getSession().then(({ data: { session } }) => {
-      if (session) fetch(
-        `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${session.user.id}`,
-        { method: 'DELETE', headers: _restHeaders(session.access_token) }
-      );
-    });
-    document.getElementById('screen-chat').classList.remove('active');
-    document.getElementById('screen-onboarding').classList.add('active');
-    document.getElementById('reset-btn').style.display = 'none';
-    document.getElementById('chat-messages').innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
-    document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
-    document.getElementById('step-1').classList.add('active');
-    document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
-    document.querySelectorAll('.btn-primary[id^="next"]').forEach(b=>b.disabled=true);
-    document.getElementById('children-count-wrap').classList.remove('visible');
-    renderStepIndicator();
+// ── INIT ──
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = 'login.html'; return; }
+
+  uid   = session.user.id;
+  token = session.access_token;
+
+  msgs = await load();
+
+  const box = document.getElementById('msgs');
+  if (msgs.length === 0) {
+    bubble('assistant', 'Hallo! Ich bin dein Scheidungs-Coach. Was beschäftigt dich gerade?');
+    msgs = []; // don't persist the welcome message
+  } else {
+    msgs.forEach(m => bubble(m.role, m.content));
+    setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
   }
-  // Expose all functions to global scope (needed for inline onclick handlers in module context)
-  Object.assign(window, {
-    renderStepIndicator, selectOption, toggleConcern,
-    showChildCount, hideChildCount, nextStep, prevStep, startChat,
-    sendMessage, handleKey, autoResize, resetApp,
-    loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
-    buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
-  });
-  })().catch(err => {
-    console.error('App init error:', err);
-    const ob = document.getElementById('screen-onboarding');
-    if (ob && !ob.classList.contains('active')) ob.classList.add('active');
-  });
+})();
 </script>
 </body>
 </html>
