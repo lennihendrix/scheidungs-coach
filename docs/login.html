@@ -71,9 +71,15 @@
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      alert.textContent = error.message === 'Invalid login credentials'
-        ? 'E-Mail oder Passwort falsch. Bitte erneut versuchen.'
-        : error.message;
+      let msg = 'E-Mail oder Passwort falsch. Bitte erneut versuchen.';
+      if (error.message.includes('Email not confirmed')) {
+        msg = 'Bitte bestätige zuerst deine E-Mail-Adresse. Schau in deinen Posteingang (auch Spam).';
+      } else if (error.message.includes('Invalid login credentials')) {
+        msg = 'E-Mail oder Passwort falsch. Bitte erneut versuchen.';
+      } else {
+        msg = error.message;
+      }
+      alert.textContent = msg;
       alert.className = 'alert error';
       btn.disabled = false;
       btn.textContent = 'Anmelden';

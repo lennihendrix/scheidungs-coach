@@ -88,25 +88,33 @@
     btn.disabled = true;
     btn.textContent = 'Konto wird erstellt…';
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password: pw,
       options: { data: { full_name: name } }
     });
 
     if (error) {
-      alertEl.textContent = error.message === 'User already registered'
-        ? 'Diese E-Mail ist bereits registriert. Bitte anmelden.'
+      const msg = error.message.includes('already registered') || error.message.includes('already been registered')
+        ? 'Diese E-Mail ist bereits registriert. <a href="login.html">Jetzt anmelden →</a>'
         : error.message;
+      alertEl.innerHTML = msg;
       alertEl.className = 'alert error';
       btn.disabled = false;
       btn.textContent = 'Konto erstellen';
-    } else {
-      alertEl.textContent = '✅ Konto erstellt! Bitte bestätige deine E-Mail-Adresse, dann kannst du dich anmelden.';
-      alertEl.className = 'alert success';
-      btn.textContent = 'Konto erstellt ✓';
-      setTimeout(() => window.location.href = 'login.html', 3000);
+      return;
     }
+
+    // If session exists → auto-confirm is on → go straight to app
+    if (data.session) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    // Otherwise email confirmation required
+    alertEl.textContent = '✅ Fast geschafft! Bitte bestätige deine E-Mail-Adresse, dann kannst du dich anmelden.';
+    alertEl.className = 'alert success';
+    btn.textContent = 'Konto erstellt ✓';
   };
 </script>
 </body>
