@@ -429,18 +429,30 @@
     window.location.href = 'login.html';
   };
 
+  // ── Direct REST helpers (avoids Supabase JS client CORS issues) ──
+  function dbHeaders(token) {
+    return {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    };
+  }
+
   // ── PERSIST: save profile + full message history to chat_sessions table ──
   async function saveState() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { error } = await supabase.from('chat_sessions').upsert({
-        user_id: session.user.id,
-        profile,
-        messages,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
-      if (error) console.error('saveState error:', error);
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/chat_sessions?on_conflict=user_id`,
+        {
+          method: 'POST',
+          headers: { ...dbHeaders(session.access_token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({ user_id: session.user.id, profile, messages, updated_at: new Date().toISOString() })
+        }
+      );
+      if (!res.ok) console.error('saveState error:', res.status, await res.text());
     } catch (e) { console.error('saveState failed:', e); }
   }
 
@@ -449,13 +461,13 @@
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return false;
-      // maybeSingle() returns null (no error) when no row exists
-      const { data, error } = await supabase
-        .from('chat_sessions')
-        .select('profile, messages')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
-      if (error) { console.error('restoreState error:', error); return false; }
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/chat_sessions?select=profile,messages&user_id=eq.${session.user.id}&limit=1`,
+        { headers: dbHeaders(session.access_token) }
+      );
+      if (!res.ok) { console.error('restoreState error:', res.status); return false; }
+      const rows = await res.json();
+      const data = rows[0];
       if (data?.profile && Object.keys(data.profile).length > 0) {
         profile = data.profile;
         messages = data.messages || [];
@@ -574,12 +586,14 @@
     // Check if user already has history in DB — don't overwrite it with empty messages
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      const { data: existing } = await supabase
-        .from('chat_sessions').select('messages').eq('user_id', session.user.id).maybeSingle();
-      if (existing?.messages?.length > 0) {
-        // Restore existing messages rather than starting fresh
-        messages = existing.messages;
-      }
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/chat_sessions?select=messages&user_id=eq.${session.user.id}&limit=1`,
+          { headers: dbHeaders(session.access_token) }
+        );
+        const rows = await res.json();
+        if (rows[0]?.messages?.length > 0) messages = rows[0].messages;
+      } catch(e) {}
     }
 
     const bar = document.getElementById('profile-bar');
@@ -784,8 +798,11 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
 
   function resetApp() {
     profile = {}; messages = []; currentStep = 1;
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) supabase.from('chat_sessions').delete().eq('user_id', user.id);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) fetch(
+        `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${session.user.id}`,
+        { method: 'DELETE', headers: dbHeaders(session.access_token) }
+      );
     });
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
