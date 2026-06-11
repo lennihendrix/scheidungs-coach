@@ -40,12 +40,16 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const { createClient } = window.supabase;
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
   const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
-  const sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Already logged in? Redirect to app
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) window.location.href = 'index.html';
 
   window.togglePw = (id, btn) => {
     const input = document.getElementById(id);
@@ -56,35 +60,33 @@
   window.handleLogin = async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submit-btn');
-    const alertEl = document.getElementById('alert');
-    alertEl.className = 'alert';
+    const alert = document.getElementById('alert');
+    alert.className = 'alert';
     btn.disabled = true;
     btn.textContent = 'Anmelden…';
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
-    const { error } = await sbClient.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       let msg = 'E-Mail oder Passwort falsch. Bitte erneut versuchen.';
       if (error.message.includes('Email not confirmed')) {
-        msg = 'Bitte bestätige zuerst deine E-Mail-Adresse.';
+        msg = 'Bitte bestätige zuerst deine E-Mail-Adresse. Schau in deinen Posteingang (auch Spam).';
+      } else if (error.message.includes('Invalid login credentials')) {
+        msg = 'E-Mail oder Passwort falsch. Bitte erneut versuchen.';
+      } else {
+        msg = error.message;
       }
-      alertEl.textContent = msg;
-      alertEl.className = 'alert error';
+      alert.textContent = msg;
+      alert.className = 'alert error';
       btn.disabled = false;
       btn.textContent = 'Anmelden';
     } else {
       window.location.href = 'index.html';
     }
   };
-
-  // Already logged in? Redirect to app
-  (async () => {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (session) window.location.href = 'index.html';
-  })();
 </script>
 </body>
 </html>

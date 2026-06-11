@@ -51,12 +51,16 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const { createClient } = window.supabase;
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
   const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
-  const sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Already logged in? Redirect to app
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) window.location.href = 'index.html';
 
   window.togglePw = (id, btn) => {
     const input = document.getElementById(id);
@@ -84,7 +88,7 @@
     btn.disabled = true;
     btn.textContent = 'Konto wird erstellt…';
 
-    const { data, error } = await sbClient.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password: pw,
       options: { data: { full_name: name } }
@@ -101,21 +105,17 @@
       return;
     }
 
+    // If session exists → auto-confirm is on → go straight to app
     if (data.session) {
       window.location.href = 'index.html';
       return;
     }
 
+    // Otherwise email confirmation required
     alertEl.textContent = '✅ Fast geschafft! Bitte bestätige deine E-Mail-Adresse, dann kannst du dich anmelden.';
     alertEl.className = 'alert success';
     btn.textContent = 'Konto erstellt ✓';
   };
-
-  // Already logged in? Redirect to app
-  (async () => {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (session) window.location.href = 'index.html';
-  })();
 </script>
 </body>
 </html>
