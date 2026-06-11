@@ -411,11 +411,21 @@
     document.getElementById('version-label').textContent = 'v' + d.version;
   }).catch(() => {});
 
+  // ── GLOBAL HANDLERS (must be set before any await) ──
+  window.handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = 'login.html';
+  };
+
   // ── AUTH GUARD ──
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     window.location.href = 'login.html';
-  } else {
+    throw new Error('not authenticated'); // stops all further execution
+  }
+
+  // Logged in — show user info
+  {
     const user = session.user;
     const name = user.user_metadata?.full_name || user.email.split('@')[0];
     const badge = document.getElementById('user-badge');
@@ -423,11 +433,6 @@
     badge.style.display = 'inline';
     document.getElementById('logout-btn').style.display = 'block';
   }
-
-  window.handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = 'login.html';
-  };
 
   // ── Direct REST helpers (avoids Supabase JS client CORS issues) ──
   function dbHeaders(token) {
