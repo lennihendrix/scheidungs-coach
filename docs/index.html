@@ -312,6 +312,7 @@
     <div class="header-title">Scheidungs-Coach</div>
     <div class="header-sub">Dein persönlicher Begleiter</div>
   </div>
+  <button class="header-reset" id="apikey-btn" onclick="changeApiKey()" style="display:block">🔑 Key</button>
   <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
 </div>
 
@@ -668,6 +669,23 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
         messages: messages.map(m=>({role:m.role,content:m.content}))
       });
       removeTyping();
+
+      // Handle non-200 responses (auth errors, rate limits, etc.)
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const errMsg = errData?.error?.message || `HTTP ${res.status}`;
+        if (res.status === 401) {
+          addMessage('assistant', '🔑 API-Key ungültig. Bitte gib einen gültigen Key ein.');
+          localStorage.removeItem('scheidungscoach_apikey');
+          setTimeout(() => { apiKey=''; document.getElementById('screen-chat').classList.remove('active'); document.getElementById('screen-apikey').classList.add('active'); document.getElementById('reset-btn').style.display='none'; }, 2000);
+        } else {
+          addMessage('assistant', `Fehler: ${errMsg}`);
+        }
+        isStreaming = false;
+        document.getElementById('send-btn').disabled = false;
+        return;
+      }
+
       const bubble = addMessage('assistant','');
       let fullText = '';
       const reader = res.body.getReader();
@@ -689,7 +707,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
               bubble.innerHTML = escapeHtml(fullText);
               document.getElementById('chat-messages').scrollTop = 9999;
             } else if (ev.type==='error') {
-              fullText = 'Es tut mir leid, ich kann gerade nicht antworten. Bitte versuche es erneut.';
+              fullText += `\n\n⚠️ ${ev.error?.message||'API-Fehler'}`;
               bubble.innerHTML = escapeHtml(fullText);
             }
           } catch {}
@@ -699,7 +717,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
       loadSuggestions();
     } catch(e) {
       removeTyping();
-      addMessage('assistant','Verbindungsfehler. Bitte prüfe deinen API-Key und versuche es erneut.');
+      addMessage('assistant', `Verbindungsfehler: ${e.message}. Bitte prüfe deine Internetverbindung.`);
     }
     isStreaming = false;
     document.getElementById('send-btn').disabled = false;
@@ -708,6 +726,16 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
 
   function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendMessage(); } }
   function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+
+  function changeApiKey() {
+    localStorage.removeItem('scheidungscoach_apikey');
+    apiKey = '';
+    document.getElementById('screen-chat').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.remove('active');
+    document.getElementById('screen-apikey').classList.add('active');
+    document.getElementById('reset-btn').style.display = 'none';
+    document.getElementById('api-key-input').value = '';
+  }
 
   function resetApp() {
     profile = {}; messages = []; currentStep = 1;
