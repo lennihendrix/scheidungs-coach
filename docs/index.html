@@ -399,8 +399,9 @@
   </div>
 </div>
 
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const { createClient } = window.supabase;
 
   const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
