@@ -22,8 +22,11 @@ echo "{ \"version\": \"$NEW_VERSION\" }" > "$VERSION_FILE"
 
 echo "🔖 Version bumped: $CURRENT → $NEW_VERSION"
 
-# Stage and commit the version bump
+# Stage and commit — included in THIS push
 git add "$VERSION_FILE"
 git commit -m "chore: bump version to $NEW_VERSION" --no-verify
 
+# Amend the push ref so git sends this new commit too
+# The pre-push hook receives remote refs on stdin; we just exit 0
+# and git will push whatever HEAD points to (which now includes the bump commit)
 exit 0
