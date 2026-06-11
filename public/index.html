@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scheidungs-Coach</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --brand: #5B6EE8;
+    --brand-dark: #3D52D5;
+    --brand-light: #EEF0FD;
+    --text: #1A1A2E;
+    --text-muted: #6B7280;
+    --border: #E5E7EB;
+    --bg: #F9FAFB;
+    --white: #FFFFFF;
+    --danger: #EF4444;
+    --success: #10B981;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(91,110,232,0.10);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-logo { font-size: 24px; }
+  .header-title { font-size: 17px; font-weight: 700; color: var(--brand); }
+  .header-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .header-reset {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: none;
+  }
+  .header-reset:hover { border-color: var(--brand); color: var(--brand); }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  /* ── ONBOARDING ── */
+  #screen-onboarding {
+    align-items: center;
+    justify-content: flex-start;
+    padding: 24px 20px 40px;
+    overflow-y: auto;
+  }
+
+  .onboarding-hero {
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+  .onboarding-hero .emoji { font-size: 52px; margin-bottom: 12px; }
+  .onboarding-hero h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; line-height: 1.2; }
+  .onboarding-hero p { color: var(--text-muted); font-size: 15px; line-height: 1.5; }
+
+  .form-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-indicator {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all .3s;
+  }
+  .step-dot.done { background: var(--brand); }
+  .step-dot.active { background: var(--brand); width: 24px; border-radius: 4px; }
+
+  .step-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .step-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+
+  .option-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .option-grid.single { grid-template-columns: 1fr; }
+
+  .option-btn {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--white);
+    transition: all .2s;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .option-btn .opt-emoji { font-size: 24px; display: block; margin-bottom: 6px; }
+  .option-btn:hover { border-color: var(--brand); background: var(--brand-light); }
+  .option-btn.selected { border-color: var(--brand); background: var(--brand-light); color: var(--brand); font-weight: 600; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .5px; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--white);
+    transition: border-color .2s;
+    -webkit-appearance: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--brand);
+  }
+  .form-textarea { resize: none; min-height: 80px; }
+
+  .children-count { display: none; margin-top: 10px; }
+  .children-count.visible { display: block; }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+  }
+  .btn-primary {
+    background: var(--brand);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--brand-dark); transform: translateY(-1px); }
+  .btn-primary:disabled { background: var(--border); color: var(--text-muted); transform: none; cursor: default; }
+  .btn-secondary {
+    background: var(--bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }
+
+  /* ── CHAT ── */
+  #screen-chat {
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .profile-bar {
+    background: var(--brand-light);
+    border-bottom: 1px solid rgba(91,110,232,0.15);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: white;
+    border: 1px solid rgba(91,110,232,0.2);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--brand-dark);
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .message {
+    display: flex;
+    gap: 10px;
+    max-width: 85%;
+    animation: msgIn .25s ease;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  .message.user { align-self: flex-end; flex-direction: row-reverse; }
+  .message.assistant { align-self: flex-start; }
+
+  .msg-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .assistant .msg-avatar { background: var(--brand-light); }
+  .user .msg-avatar { background: #FEE2E2; }
+
+  .msg-bubble {
+    padding: 12px 15px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .assistant .msg-bubble {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .user .msg-bubble {
+    background: var(--brand);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .typing-indicator { display: flex; gap: 4px; padding: 4px 2px; }
+  .typing-indicator span {
+    width: 7px; height: 7px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: bounce .8s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: .15s; }
+  .typing-indicator span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+  }
+
+  /* suggestions */
+  .suggestions-area {
+    padding: 10px 16px 6px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--white);
+  }
+  .suggestions-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 8px;
+  }
+  .suggestions-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .suggestions-scroll::-webkit-scrollbar { display: none; }
+  .suggestion-chip {
+    flex-shrink: 0;
+    border: 1.5px solid var(--brand);
+    color: var(--brand);
+    background: var(--white);
+    border-radius: 20px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .suggestion-chip:hover { background: var(--brand); color: white; }
+
+  /* input area */
+  .chat-input-area {
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+  .chat-input-wrap {
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    transition: border-color .2s;
+    background: var(--bg);
+  }
+  .chat-input-wrap:focus-within { border-color: var(--brand); background: white; }
+  #chat-input {
+    flex: 1;
+    border: none;
+    background: none;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text);
+    resize: none;
+    max-height: 120px;
+    line-height: 1.4;
+    outline: none;
+  }
+  #chat-input::placeholder { color: var(--text-muted); }
+
+  #send-btn {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    background: var(--brand);
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .2s;
+    font-size: 18px;
+  }
+  #send-btn:hover { background: var(--brand-dark); transform: scale(1.05); }
+  #send-btn:disabled { background: var(--border); transform: none; cursor: default; }
+
+  /* welcome message */
+  .welcome-card {
+    background: linear-gradient(135deg, var(--brand-light), white);
+    border: 1px solid rgba(91,110,232,0.2);
+    border-radius: var(--radius);
+    padding: 18px;
+    text-align: center;
+    max-width: 340px;
+    align-self: center;
+    margin: 8px auto;
+  }
+  .welcome-card .wc-emoji { font-size: 36px; margin-bottom: 8px; }
+  .welcome-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--brand-dark); }
+  .welcome-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  /* responsive */
+  @media (min-width: 600px) {
+    #screen-onboarding { padding: 40px 20px 60px; }
+    .message { max-width: 70%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">⚖️</div>
+  <div>
+    <div class="header-title">Scheidungs-Coach</div>
+    <div class="header-sub">Dein persönlicher Begleiter</div>
+  </div>
+  <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
+</div>
+
+<!-- ONBOARDING -->
+<div id="screen-onboarding" class="screen active">
+  <div class="onboarding-hero">
+    <div class="emoji">🤝</div>
+    <h1>Du bist nicht allein.</h1>
+    <p>Beantworte ein paar kurze Fragen, damit ich dir wirklich helfen kann — persönlich und passend zu deiner Situation.</p>
+  </div>
+
+  <div class="form-card">
+    <div class="step-indicator" id="step-indicator"></div>
+
+    <!-- Step 1: Gender -->
+    <div class="step active" id="step-1">
+      <div class="step-title">Wer bist du?</div>
+      <div class="step-sub">Damit ich dich richtig ansprechen kann.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-field="gender" data-value="male" onclick="selectOption(this)">
+          <span class="opt-emoji">👨</span>Mann
+        </button>
+        <button class="option-btn" data-field="gender" data-value="female" onclick="selectOption(this)">
+          <span class="opt-emoji">👩</span>Frau
+        </button>
+        <button class="option-btn" data-field="gender" data-value="diverse" onclick="selectOption(this)">
+          <span class="opt-emoji">🧑</span>Divers
+        </button>
+        <button class="option-btn" data-field="gender" data-value="no_answer" onclick="selectOption(this)">
+          <span class="opt-emoji">🤷</span>Keine Angabe
+        </button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="next-1" onclick="nextStep(2)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Status -->
+    <div class="step" id="step-2">
+      <div class="step-title">Wie ist deine aktuelle Situation?</div>
+      <div class="step-sub">In welcher Phase der Trennung befindest du dich?</div>
+      <div class="option-grid single">
+        <button class="option-btn" data-field="status" data-value="trennung" onclick="selectOption(this)">
+          <span class="opt-emoji">💔</span>Frisch getrennt – wir leben noch zusammen
+        </button>
+        <button class="option-btn" data-field="status" data-value="ausgezogen" onclick="selectOption(this)">
+          <span class="opt-emoji">🏠</span>Getrennt & einer ist ausgezogen
+        </button>
+        <button class="option-btn" data-field="status" data-value="scheidung" onclick="selectOption(this)">
+          <span class="opt-emoji">⚖️</span>Scheidungsverfahren läuft
+        </button>
+        <button class="option-btn" data-field="status" data-value="geschieden" onclick="selectOption(this)">
+          <span class="opt-emoji">✅</span>Scheidung abgeschlossen
+        </button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(1)">← Zurück</button>
+        <button class="btn btn-primary" id="next-2" onclick="nextStep(3)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Since when -->
+    <div class="step" id="step-3">
+      <div class="step-title">Seit wann?</div>
+      <div class="step-sub">Ungefähr, kein exaktes Datum nötig.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-field="since" data-value="wenige Wochen" onclick="selectOption(this)">
+          <span class="opt-emoji">📅</span>Wenige Wochen
+        </button>
+        <button class="option-btn" data-field="since" data-value="2–6 Monaten" onclick="selectOption(this)">
+          <span class="opt-emoji">📆</span>2–6 Monate
+        </button>
+        <button class="option-btn" data-field="since" data-value="6–12 Monaten" onclick="selectOption(this)">
+          <span class="opt-emoji">🗓️</span>6–12 Monate
+        </button>
+        <button class="option-btn" data-field="since" data-value="über einem Jahr" onclick="selectOption(this)">
+          <span class="opt-emoji">⏳</span>Über 1 Jahr
+        </button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(2)">← Zurück</button>
+        <button class="btn btn-primary" id="next-3" onclick="nextStep(4)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Children -->
+    <div class="step" id="step-4">
+      <div class="step-title">Habt ihr gemeinsame Kinder?</div>
+      <div class="step-sub">Das beeinflusst viele Themen wie Unterhalt und Sorgerecht.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-field="children" data-value="yes" onclick="selectOption(this); showChildCount()">
+          <span class="opt-emoji">👶</span>Ja
+        </button>
+        <button class="option-btn" data-field="children" data-value="no" onclick="selectOption(this); hideChildCount()">
+          <span class="opt-emoji">🚫</span>Nein
+        </button>
+      </div>
+      <div class="children-count" id="children-count-wrap">
+        <div class="form-group">
+          <label class="form-label">Wie viele Kinder?</label>
+          <select class="form-select" id="children-count" onchange="profile.childrenCount = this.value">
+            <option value="1">1 Kind</option>
+            <option value="2">2 Kinder</option>
+            <option value="3">3 Kinder</option>
+            <option value="4+">4 oder mehr</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(3)">← Zurück</button>
+        <button class="btn btn-primary" id="next-4" onclick="nextStep(5)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Concerns -->
+    <div class="step" id="step-5">
+      <div class="step-title">Was beschäftigt dich am meisten?</div>
+      <div class="step-sub">Optional — Mehrfachauswahl möglich.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-field="concerns" data-value="Emotionale Verarbeitung" onclick="toggleConcern(this)">
+          <span class="opt-emoji">💭</span>Emotionen & Verarbeitung
+        </button>
+        <button class="option-btn" data-field="concerns" data-value="Rechtliche Fragen" onclick="toggleConcern(this)">
+          <span class="opt-emoji">⚖️</span>Rechtliche Fragen
+        </button>
+        <button class="option-btn" data-field="concerns" data-value="Finanzen & Unterhalt" onclick="toggleConcern(this)">
+          <span class="opt-emoji">💰</span>Finanzen & Unterhalt
+        </button>
+        <button class="option-btn" data-field="concerns" data-value="Kinder & Sorgerecht" onclick="toggleConcern(this)">
+          <span class="opt-emoji">👨‍👧</span>Kinder & Sorgerecht
+        </button>
+        <button class="option-btn" data-field="concerns" data-value="Neustart & Zukunft" onclick="toggleConcern(this)">
+          <span class="opt-emoji">🌱</span>Neustart & Zukunft
+        </button>
+        <button class="option-btn" data-field="concerns" data-value="Kommunikation mit Ex" onclick="toggleConcern(this)">
+          <span class="opt-emoji">💬</span>Kommunikation mit Ex
+        </button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(4)">← Zurück</button>
+        <button class="btn btn-primary" onclick="startChat()">Zum Coach →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div id="screen-chat" class="screen">
+  <div class="profile-bar" id="profile-bar"></div>
+
+  <div class="chat-messages" id="chat-messages">
+    <div class="welcome-card">
+      <div class="wc-emoji">👋</div>
+      <h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3>
+      <p id="welcome-text">Ich bin hier, um dir zuzuhören und zu helfen. Stell mir eine Frage oder wähle einen Vorschlag unten.</p>
+    </div>
+  </div>
+
+  <div class="suggestions-area">
+    <div class="suggestions-label">Vorgeschlagene Fragen</div>
+    <div class="suggestions-scroll" id="suggestions"></div>
+  </div>
+
+  <div class="chat-input-area">
+    <div class="chat-input-wrap">
+      <textarea id="chat-input" placeholder="Deine Frage..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    </div>
+    <button id="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<script>
+  const TOTAL_STEPS = 5;
+  let currentStep = 1;
+  let profile = {};
+  let messages = [];
+  let isStreaming = false;
+
+  // ── STEP INDICATOR ──
+  function renderStepIndicator() {
+    const el = document.getElementById('step-indicator');
+    el.innerHTML = Array.from({length: TOTAL_STEPS}, (_, i) => {
+      const n = i + 1;
+      const cls = n < currentStep ? 'done' : n === currentStep ? 'active' : '';
+      return `<div class="step-dot ${cls}"></div>`;
+    }).join('');
+  }
+  renderStepIndicator();
+
+  // ── OPTION SELECTION ──
+  function selectOption(btn) {
+    const field = btn.dataset.field;
+    const value = btn.dataset.value;
+    profile[field] = value;
+    btn.closest('.option-grid').querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const nextBtn = document.getElementById(`next-${currentStep}`);
+    if (nextBtn) nextBtn.disabled = false;
+  }
+
+  function toggleConcern(btn) {
+    const value = btn.dataset.value;
+    if (!Array.isArray(profile.concerns)) profile.concerns = [];
+    if (btn.classList.contains('selected')) {
+      btn.classList.remove('selected');
+      profile.concerns = profile.concerns.filter(v => v !== value);
+    } else {
+      btn.classList.add('selected');
+      profile.concerns.push(value);
+    }
+  }
+
+  function showChildCount() {
+    document.getElementById('children-count-wrap').classList.add('visible');
+    profile.childrenCount = '1';
+  }
+  function hideChildCount() {
+    document.getElementById('children-count-wrap').classList.remove('visible');
+    delete profile.childrenCount;
+  }
+
+  // ── NAVIGATION ──
+  function nextStep(n) {
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    currentStep = n;
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+    renderStepIndicator();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+  function prevStep(n) {
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    currentStep = n;
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+    renderStepIndicator();
+  }
+
+  // ── START CHAT ──
+  function startChat() {
+    // Profile bar
+    const bar = document.getElementById('profile-bar');
+    const genderEmoji = {male:'👨', female:'👩', diverse:'🧑', no_answer:'🙂'}[profile.gender] || '🙂';
+    const statusLabel = {trennung:'Getrennt', ausgezogen:'Ausgezogen', scheidung:'Scheidung läuft', geschieden:'Geschieden'}[profile.status] || '';
+    const childLabel = profile.children === 'yes' ? `👶 ${profile.childrenCount || '1'} Kind${profile.childrenCount > 1 ? 'er' : ''}` : '';
+    bar.innerHTML = [
+      `<span class="profile-badge">${genderEmoji} ${profile.gender === 'male' ? 'Mann' : profile.gender === 'female' ? 'Frau' : 'Divers'}</span>`,
+      statusLabel ? `<span class="profile-badge">⚖️ ${statusLabel}</span>` : '',
+      profile.since ? `<span class="profile-badge">🕐 Seit ${profile.since}</span>` : '',
+      childLabel ? `<span class="profile-badge">${childLabel}</span>` : '',
+    ].filter(Boolean).join('');
+
+    // Welcome
+    const name = profile.gender === 'male' ? 'Hallo! Ich bin dein Coach.' : profile.gender === 'female' ? 'Hallo! Ich bin deine Coachin.' : 'Hallo! Ich bin dein Coach.';
+    document.getElementById('welcome-title').textContent = name;
+
+    // Show chat screen
+    document.getElementById('screen-onboarding').classList.remove('active');
+    document.getElementById('screen-chat').classList.add('active');
+    document.getElementById('reset-btn').style.display = 'block';
+
+    // Load initial suggestions
+    loadSuggestions();
+  }
+
+  // ── SUGGESTIONS ──
+  async function loadSuggestions() {
+    const container = document.getElementById('suggestions');
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Wird geladen…</span>';
+    try {
+      const res = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ messages, profile })
+      });
+      const data = await res.json();
+      container.innerHTML = '';
+      (data.suggestions || []).forEach(s => {
+        const chip = document.createElement('button');
+        chip.className = 'suggestion-chip';
+        chip.textContent = s;
+        chip.onclick = () => {
+          document.getElementById('chat-input').value = s;
+          sendMessage();
+        };
+        container.appendChild(chip);
+      });
+    } catch {
+      container.innerHTML = '';
+    }
+  }
+
+  // ── CHAT ──
+  function addMessage(role, content) {
+    const avatarEmoji = role === 'assistant' ? '🤝' : (profile.gender === 'male' ? '👨' : profile.gender === 'female' ? '👩' : '🙂');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    div.innerHTML = `
+      <div class="msg-avatar">${avatarEmoji}</div>
+      <div class="msg-bubble" id="msg-${Date.now()}">${escapeHtml(content)}</div>
+    `;
+    const container = document.getElementById('chat-messages');
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div.querySelector('.msg-bubble');
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+
+  function addTyping() {
+    const div = document.createElement('div');
+    div.className = 'message assistant';
+    div.id = 'typing-msg';
+    div.innerHTML = `
+      <div class="msg-avatar">🤝</div>
+      <div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
+    `;
+    const container = document.getElementById('chat-messages');
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typing-msg');
+    if (el) el.remove();
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text || isStreaming) return;
+
+    input.value = '';
+    autoResize(input);
+    document.getElementById('send-btn').disabled = true;
+    isStreaming = true;
+
+    addMessage('user', text);
+    messages.push({ role: 'user', content: text });
+
+    addTyping();
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ messages, profile })
+      });
+
+      removeTyping();
+      const bubble = addMessage('assistant', '');
+      let fullText = '';
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const lines = decoder.decode(value).split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (data === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.text) {
+              fullText += parsed.text;
+              bubble.innerHTML = escapeHtml(fullText);
+              document.getElementById('chat-messages').scrollTop = 9999;
+            } else if (parsed.error) {
+              fullText = 'Es tut mir leid, ich kann gerade nicht antworten. Bitte versuche es in einem Moment erneut.';
+              bubble.innerHTML = escapeHtml(fullText);
+            }
+          } catch {}
+        }
+      }
+
+      messages.push({ role: 'assistant', content: fullText });
+      loadSuggestions();
+    } catch (e) {
+      removeTyping();
+      addMessage('assistant', 'Es tut mir leid, ich konnte keine Antwort generieren. Bitte versuche es erneut.');
+    }
+
+    isStreaming = false;
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('chat-input').focus();
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function resetApp() {
+    profile = {};
+    messages = [];
+    currentStep = 1;
+    document.getElementById('screen-chat').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.add('active');
+    document.getElementById('reset-btn').style.display = 'none';
+    document.getElementById('chat-messages').innerHTML = `
+      <div class="welcome-card">
+        <div class="wc-emoji">👋</div>
+        <h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3>
+        <p id="welcome-text">Ich bin hier, um dir zuzuhören und zu helfen.</p>
+      </div>`;
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-1').classList.add('active');
+    document.querySelectorAll('.option-btn').forEach(b => {
+      b.classList.remove('selected');
+    });
+    document.querySelectorAll('.btn-primary[id^="next"]').forEach(b => b.disabled = true);
+    document.getElementById('children-count-wrap').classList.remove('visible');
+    renderStepIndicator();
+  }
+</script>
+</body>
+</html>

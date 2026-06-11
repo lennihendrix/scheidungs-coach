@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scheidungs-Coach</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --brand: #5B6EE8;
+    --brand-dark: #3D52D5;
+    --brand-light: #EEF0FD;
+    --text: #1A1A2E;
+    --text-muted: #6B7280;
+    --border: #E5E7EB;
+    --bg: #F9FAFB;
+    --white: #FFFFFF;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(91,110,232,0.10);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-logo { font-size: 24px; }
+  .header-title { font-size: 17px; font-weight: 700; color: var(--brand); }
+  .header-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .header-reset {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: none;
+  }
+  .header-reset:hover { border-color: var(--brand); color: var(--brand); }
+
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  /* ── API KEY SCREEN ── */
+  #screen-apikey {
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+  }
+  .apikey-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px 28px;
+    max-width: 460px;
+    width: 100%;
+    text-align: center;
+  }
+  .apikey-card .ak-emoji { font-size: 44px; margin-bottom: 16px; }
+  .apikey-card h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .apikey-card p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+  .apikey-card a { color: var(--brand); text-decoration: none; font-weight: 600; }
+  .apikey-card a:hover { text-decoration: underline; }
+  .ak-input-wrap {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .ak-input {
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-family: monospace;
+    color: var(--text);
+    transition: border-color .2s;
+  }
+  .ak-input:focus { outline: none; border-color: var(--brand); }
+  .ak-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: left;
+    line-height: 1.5;
+  }
+  .ak-note strong { color: var(--text); }
+
+  /* ── ONBOARDING ── */
+  #screen-onboarding {
+    align-items: center;
+    justify-content: flex-start;
+    padding: 24px 20px 40px;
+    overflow-y: auto;
+  }
+  .onboarding-hero {
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+  .onboarding-hero .emoji { font-size: 52px; margin-bottom: 12px; }
+  .onboarding-hero h1 { font-size: 26px; font-weight: 800; margin-bottom: 8px; line-height: 1.2; }
+  .onboarding-hero p { color: var(--text-muted); font-size: 15px; line-height: 1.5; }
+
+  .form-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-indicator {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all .3s;
+  }
+  .step-dot.done { background: var(--brand); }
+  .step-dot.active { background: var(--brand); width: 24px; border-radius: 4px; }
+
+  .step-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .step-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.4; }
+
+  .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .option-grid.single { grid-template-columns: 1fr; }
+
+  .option-btn {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--white);
+    transition: all .2s;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .option-btn .opt-emoji { font-size: 24px; display: block; margin-bottom: 6px; }
+  .option-btn:hover { border-color: var(--brand); background: var(--brand-light); }
+  .option-btn.selected { border-color: var(--brand); background: var(--brand-light); color: var(--brand); font-weight: 600; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .5px; }
+  .form-select {
+    width: 100%;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--white);
+    -webkit-appearance: none;
+  }
+  .children-count { display: none; margin-top: 10px; }
+  .children-count.visible { display: block; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 4px; }
+  .btn {
+    flex: 1; padding: 14px; border-radius: 12px;
+    font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all .2s;
+  }
+  .btn-primary { background: var(--brand); color: white; }
+  .btn-primary:hover { background: var(--brand-dark); transform: translateY(-1px); }
+  .btn-primary:disabled { background: var(--border); color: var(--text-muted); transform: none; cursor: default; }
+  .btn-secondary { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }
+
+  /* ── CHAT ── */
+  #screen-chat { flex-direction: column; height: 100dvh; overflow: hidden; }
+
+  .profile-bar {
+    background: var(--brand-light);
+    border-bottom: 1px solid rgba(91,110,232,0.15);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .profile-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: white; border: 1px solid rgba(91,110,232,0.2);
+    border-radius: 20px; padding: 4px 10px;
+    font-size: 12px; font-weight: 500; color: var(--brand-dark);
+  }
+
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+
+  .message { display: flex; gap: 10px; max-width: 85%; animation: msgIn .25s ease; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .message.user { align-self: flex-end; flex-direction: row-reverse; }
+  .message.assistant { align-self: flex-start; }
+
+  .msg-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .assistant .msg-avatar { background: var(--brand-light); }
+  .user .msg-avatar { background: #FEE2E2; }
+
+  .msg-bubble { padding: 12px 15px; border-radius: 16px; font-size: 15px; line-height: 1.55; }
+  .assistant .msg-bubble {
+    background: var(--white); border: 1px solid var(--border);
+    border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .user .msg-bubble { background: var(--brand); color: white; border-bottom-right-radius: 4px; }
+
+  .typing-indicator { display: flex; gap: 4px; padding: 4px 2px; }
+  .typing-indicator span {
+    width: 7px; height: 7px; background: var(--text-muted);
+    border-radius: 50%; animation: bounce .8s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: .15s; }
+  .typing-indicator span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+
+  .suggestions-area {
+    padding: 10px 16px 6px; flex-shrink: 0;
+    border-top: 1px solid var(--border); background: var(--white);
+  }
+  .suggestions-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .suggestions-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .suggestions-scroll::-webkit-scrollbar { display: none; }
+  .suggestion-chip {
+    flex-shrink: 0; border: 1.5px solid var(--brand); color: var(--brand);
+    background: var(--white); border-radius: 20px; padding: 7px 14px;
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s; white-space: nowrap;
+  }
+  .suggestion-chip:hover { background: var(--brand); color: white; }
+
+  .chat-input-area {
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    background: var(--white); border-top: 1px solid var(--border);
+    display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;
+  }
+  .chat-input-wrap {
+    flex: 1; border: 2px solid var(--border); border-radius: 12px;
+    padding: 10px 14px; display: flex; align-items: flex-end; gap: 8px;
+    transition: border-color .2s; background: var(--bg);
+  }
+  .chat-input-wrap:focus-within { border-color: var(--brand); background: white; }
+  #chat-input {
+    flex: 1; border: none; background: none; font-size: 15px;
+    font-family: inherit; color: var(--text); resize: none; max-height: 120px; line-height: 1.4; outline: none;
+  }
+  #chat-input::placeholder { color: var(--text-muted); }
+  #send-btn {
+    width: 42px; height: 42px; border-radius: 10px; background: var(--brand);
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all .2s; font-size: 18px;
+  }
+  #send-btn:hover { background: var(--brand-dark); transform: scale(1.05); }
+  #send-btn:disabled { background: var(--border); transform: none; cursor: default; }
+
+  .welcome-card {
+    background: linear-gradient(135deg, var(--brand-light), white);
+    border: 1px solid rgba(91,110,232,0.2); border-radius: var(--radius);
+    padding: 18px; text-align: center; max-width: 340px; align-self: center; margin: 8px auto;
+  }
+  .welcome-card .wc-emoji { font-size: 36px; margin-bottom: 8px; }
+  .welcome-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--brand-dark); }
+  .welcome-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  @media (min-width: 600px) {
+    #screen-onboarding { padding: 40px 20px 60px; }
+    .message { max-width: 70%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">⚖️</div>
+  <div>
+    <div class="header-title">Scheidungs-Coach</div>
+    <div class="header-sub">Dein persönlicher Begleiter</div>
+  </div>
+  <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
+</div>
+
+<!-- API KEY -->
+<div id="screen-apikey" class="screen active">
+  <div class="apikey-card">
+    <div class="ak-emoji">🔑</div>
+    <h2>API-Key einrichten</h2>
+    <p>
+      Für den Scheidungs-Coach brauchst du einen Anthropic API-Key.<br>
+      Hole dir einen kostenlos unter <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
+    </p>
+    <div class="ak-input-wrap">
+      <input class="ak-input" id="api-key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off" />
+      <button class="btn btn-primary" style="flex:0;padding:12px 18px" onclick="saveApiKey()">Speichern</button>
+    </div>
+    <p class="ak-note">
+      <strong>Sicherheit:</strong> Dein Key wird nur in deinem Browser (localStorage) gespeichert und nie an einen Server weitergegeben. Die Kommunikation läuft direkt von deinem Gerät zu Anthropic.
+    </p>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="screen-onboarding" class="screen">
+  <div class="onboarding-hero">
+    <div class="emoji">🤝</div>
+    <h1>Du bist nicht allein.</h1>
+    <p>Beantworte ein paar kurze Fragen, damit ich dir wirklich helfen kann — persönlich und passend zu deiner Situation.</p>
+  </div>
+
+  <div class="form-card">
+    <div class="step-indicator" id="step-indicator"></div>
+
+    <!-- Step 1 -->
+    <div class="step active" id="step-1">
+      <div class="step-title">Wer bist du?</div>
+      <div class="step-sub">Damit ich dich richtig ansprechen kann.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-field="gender" data-value="male" onclick="selectOption(this)"><span class="opt-emoji">👨</span>Mann</button>
+        <button class="option-btn" data-field="gender" data-value="female" onclick="selectOption(this)"><span class="opt-emoji">👩</span>Frau</button>
+        <button class="option-btn" data-field="gender" data-value="diverse" onclick="selectOption(this)"><span class="opt-emoji">🧑</span>Divers</button>
+        <button class="option-btn" data-field="gender" data-value="no_answer" onclick="selectOption(this)"><span class="opt-emoji">🤷</span>Keine Angabe</button>
+      </div>
+      <div class="btn-row"><button class="btn btn-primary" id="next-1" onclick="nextStep(2)" disabled>Weiter →</button></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step" id="step-2">
+      <div class="step-title">Wie ist deine aktuelle Situation?</div>
+      <div class="step-sub">In welcher Phase der Trennung befindest du dich?</div>
+      <div class="option-grid single">
+        <button class="option-btn" data-field="status" data-value="trennung" onclick="selectOption(this)"><span class="opt-emoji">💔</span>Frisch getrennt – wir leben noch zusammen</button>
+        <button class="option-btn" data-field="status" data-value="ausgezogen" onclick="selectOption(this)"><span class="opt-emoji">🏠</span>Getrennt & einer ist ausgezogen</button>
+        <button class="option-btn" data-field="status" data-value="scheidung" onclick="selectOption(this)"><span class="opt-emoji">⚖️</span>Scheidungsverfahren läuft</button>
+        <button class="option-btn" data-field="status" data-value="geschieden" onclick="selectOption(this)"><span class="opt-emoji">✅</span>Scheidung abgeschlossen</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(1)">← Zurück</button>
+        <button class="btn btn-primary" id="next-2" onclick="nextStep(3)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step" id="step-3">
+      <div class="step-title">Seit wann?</div>
+      <div class="step-sub">Ungefähr, kein exaktes Datum nötig.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-field="since" data-value="wenige Wochen" onclick="selectOption(this)"><span class="opt-emoji">📅</span>Wenige Wochen</button>
+        <button class="option-btn" data-field="since" data-value="2–6 Monaten" onclick="selectOption(this)"><span class="opt-emoji">📆</span>2–6 Monate</button>
+        <button class="option-btn" data-field="since" data-value="6–12 Monaten" onclick="selectOption(this)"><span class="opt-emoji">🗓️</span>6–12 Monate</button>
+        <button class="option-btn" data-field="since" data-value="über einem Jahr" onclick="selectOption(this)"><span class="opt-emoji">⏳</span>Über 1 Jahr</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(2)">← Zurück</button>
+        <button class="btn btn-primary" id="next-3" onclick="nextStep(4)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step" id="step-4">
+      <div class="step-title">Habt ihr gemeinsame Kinder?</div>
+      <div class="step-sub">Das beeinflusst viele Themen wie Unterhalt und Sorgerecht.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-field="children" data-value="yes" onclick="selectOption(this); showChildCount()"><span class="opt-emoji">👶</span>Ja</button>
+        <button class="option-btn" data-field="children" data-value="no" onclick="selectOption(this); hideChildCount()"><span class="opt-emoji">🚫</span>Nein</button>
+      </div>
+      <div class="children-count" id="children-count-wrap">
+        <div class="form-group">
+          <label class="form-label">Wie viele Kinder?</label>
+          <select class="form-select" id="children-count" onchange="profile.childrenCount = this.value">
+            <option value="1">1 Kind</option><option value="2">2 Kinder</option>
+            <option value="3">3 Kinder</option><option value="4+">4 oder mehr</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(3)">← Zurück</button>
+        <button class="btn btn-primary" id="next-4" onclick="nextStep(5)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step" id="step-5">
+      <div class="step-title">Was beschäftigt dich am meisten?</div>
+      <div class="step-sub">Optional — Mehrfachauswahl möglich.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-value="Emotionale Verarbeitung" onclick="toggleConcern(this)"><span class="opt-emoji">💭</span>Emotionen & Verarbeitung</button>
+        <button class="option-btn" data-value="Rechtliche Fragen" onclick="toggleConcern(this)"><span class="opt-emoji">⚖️</span>Rechtliche Fragen</button>
+        <button class="option-btn" data-value="Finanzen & Unterhalt" onclick="toggleConcern(this)"><span class="opt-emoji">💰</span>Finanzen & Unterhalt</button>
+        <button class="option-btn" data-value="Kinder & Sorgerecht" onclick="toggleConcern(this)"><span class="opt-emoji">👨‍👧</span>Kinder & Sorgerecht</button>
+        <button class="option-btn" data-value="Neustart & Zukunft" onclick="toggleConcern(this)"><span class="opt-emoji">🌱</span>Neustart & Zukunft</button>
+        <button class="option-btn" data-value="Kommunikation mit Ex" onclick="toggleConcern(this)"><span class="opt-emoji">💬</span>Kommunikation mit Ex</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(4)">← Zurück</button>
+        <button class="btn btn-primary" onclick="startChat()">Zum Coach →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div id="screen-chat" class="screen">
+  <div class="profile-bar" id="profile-bar"></div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="welcome-card">
+      <div class="wc-emoji">👋</div>
+      <h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3>
+      <p>Ich bin hier, um dir zuzuhören und zu helfen. Stell mir eine Frage oder wähle einen Vorschlag unten.</p>
+    </div>
+  </div>
+  <div class="suggestions-area">
+    <div class="suggestions-label">Vorgeschlagene Fragen</div>
+    <div class="suggestions-scroll" id="suggestions"></div>
+  </div>
+  <div class="chat-input-area">
+    <div class="chat-input-wrap">
+      <textarea id="chat-input" placeholder="Deine Frage..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    </div>
+    <button id="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+</div>
+
+<script>
+  const BASE_URL = 'https://api.anthropic.com';
+  const TOTAL_STEPS = 5;
+  let currentStep = 1;
+  let profile = {};
+  let messages = [];
+  let isStreaming = false;
+  let apiKey = localStorage.getItem('scheidungscoach_apikey') || '';
+
+  // ── INIT ──
+  if (apiKey) {
+    document.getElementById('screen-apikey').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.add('active');
+    renderStepIndicator();
+  } else {
+    renderStepIndicator();
+  }
+
+  function saveApiKey() {
+    const val = document.getElementById('api-key-input').value.trim();
+    if (!val.startsWith('sk-ant-')) {
+      document.getElementById('api-key-input').style.borderColor = '#EF4444';
+      return;
+    }
+    apiKey = val;
+    localStorage.setItem('scheidungscoach_apikey', apiKey);
+    document.getElementById('screen-apikey').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.add('active');
+    renderStepIndicator();
+  }
+  document.getElementById('api-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
+
+  // ── STEP INDICATOR ──
+  function renderStepIndicator() {
+    const el = document.getElementById('step-indicator');
+    el.innerHTML = Array.from({length: TOTAL_STEPS}, (_, i) => {
+      const n = i + 1;
+      const cls = n < currentStep ? 'done' : n === currentStep ? 'active' : '';
+      return `<div class="step-dot ${cls}"></div>`;
+    }).join('');
+  }
+
+  function selectOption(btn) {
+    const field = btn.dataset.field;
+    profile[field] = btn.dataset.value;
+    btn.closest('.option-grid').querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const nb = document.getElementById(`next-${currentStep}`);
+    if (nb) nb.disabled = false;
+  }
+
+  function toggleConcern(btn) {
+    if (!Array.isArray(profile.concerns)) profile.concerns = [];
+    const val = btn.dataset.value;
+    if (btn.classList.contains('selected')) {
+      btn.classList.remove('selected');
+      profile.concerns = profile.concerns.filter(v => v !== val);
+    } else {
+      btn.classList.add('selected');
+      profile.concerns.push(val);
+    }
+  }
+
+  function showChildCount() { document.getElementById('children-count-wrap').classList.add('visible'); profile.childrenCount = '1'; }
+  function hideChildCount() { document.getElementById('children-count-wrap').classList.remove('visible'); delete profile.childrenCount; }
+
+  function nextStep(n) {
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    currentStep = n;
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+    renderStepIndicator();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+  function prevStep(n) {
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    currentStep = n;
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+    renderStepIndicator();
+  }
+
+  function startChat() {
+    const bar = document.getElementById('profile-bar');
+    const genderEmoji = {male:'👨',female:'👩',diverse:'🧑',no_answer:'🙂'}[profile.gender]||'🙂';
+    const genderLabel = {male:'Mann',female:'Frau',diverse:'Divers',no_answer:'Anonym'}[profile.gender]||'';
+    const statusLabel = {trennung:'Getrennt',ausgezogen:'Ausgezogen',scheidung:'Scheidung läuft',geschieden:'Geschieden'}[profile.status]||'';
+    const childLabel = profile.children==='yes' ? `👶 ${profile.childrenCount||'1'} Kind${(profile.childrenCount||1)>1?'er':''}` : '';
+    bar.innerHTML = [
+      `<span class="profile-badge">${genderEmoji} ${genderLabel}</span>`,
+      statusLabel ? `<span class="profile-badge">⚖️ ${statusLabel}</span>` : '',
+      profile.since ? `<span class="profile-badge">🕐 Seit ${profile.since}</span>` : '',
+      childLabel ? `<span class="profile-badge">${childLabel}</span>` : '',
+    ].filter(Boolean).join('');
+
+    const isF = profile.gender === 'female';
+    document.getElementById('welcome-title').textContent = isF ? 'Hallo! Ich bin deine Coachin.' : 'Hallo! Ich bin dein Coach.';
+
+    document.getElementById('screen-onboarding').classList.remove('active');
+    document.getElementById('screen-chat').classList.add('active');
+    document.getElementById('reset-btn').style.display = 'block';
+    loadSuggestions();
+  }
+
+  // ── SYSTEM PROMPT ──
+  function buildSystemPrompt() {
+    const gender = {male:'Mann',female:'Frau',diverse:'diverse Person',no_answer:'Person'}[profile.gender]||'Person';
+    const status = {trennung:'in der Trennungsphase',ausgezogen:'bereits ausgezogen',scheidung:'im laufenden Scheidungsverfahren',geschieden:'bereits geschieden'}[profile.status]||'in einer Trennungssituation';
+    const since = profile.since ? `seit ${profile.since}` : '';
+    const children = profile.children==='yes' ? `hat ${profile.childrenCount||'ein oder mehrere'} Kind(er)` : 'hat keine Kinder';
+    const concerns = profile.concerns?.length ? `- Hauptanliegen: ${Array.isArray(profile.concerns)?profile.concerns.join(', '):profile.concerns}` : '';
+
+    return `Du bist ein einfühlsamer, professioneller Scheidungs-Coach. Du hilfst Menschen dabei, die emotionalen, praktischen und rechtlichen Herausforderungen einer Trennung oder Scheidung zu bewältigen.
+
+Über den Nutzer:
+- Geschlecht: ${gender}
+- Situation: ${status}${since?', '+since:''}
+- Kinder: ${children}
+${concerns}
+
+Deine Rolle:
+- Sei empathisch, verständnisvoll und unterstützend
+- Gib praktische, konkrete Ratschläge
+- Beachte die spezifische Situation des Nutzers
+- Weise bei rechtlichen Fragen auf die Notwendigkeit eines Anwalts hin
+- Antworte auf Deutsch, klar und in angemessener Länge (2-5 Sätze für einfache Fragen, mehr wenn nötig)
+- Duze den Nutzer IMMER — niemals siezen, kein "Sie" oder "Ihnen"
+
+Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen oder komplexen Rechtsfragen weise auf professionelle Hilfe hin.`;
+  }
+
+  // ── API CALL ──
+  async function callAnthropic(body) {
+    return fetch(`${BASE_URL}/v1/messages`, {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': apiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31'
+      },
+      body: JSON.stringify(body)
+    });
+  }
+
+  // ── SUGGESTIONS ──
+  async function loadSuggestions() {
+    const container = document.getElementById('suggestions');
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Wird geladen…</span>';
+    const gender = {male:'Mann',female:'Frau',diverse:'diverse Person'}[profile.gender]||'Person';
+    const status = {trennung:'Trennungsphase',ausgezogen:'ausgezogen',scheidung:'Scheidungsverfahren',geschieden:'geschieden'}[profile.status]||'Trennung';
+    const children = profile.children==='yes'?'mit Kindern':'ohne Kinder';
+    const recent = messages.slice(-6).map(m=>`${m.role}: ${m.content}`).join('\n');
+    try {
+      const res = await callAnthropic({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        messages: [{role:'user', content:`Generiere 5 kurze, relevante Fragen (max. 8 Wörter je Frage) für einen ${gender} in der ${status} ${children}.\n\nBisheriger Chatverlauf:\n${recent||'(noch kein Chat)'}\n\nGib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen. Fragen sollen zum Kontext passen und noch nicht besprochene Themen abdecken. Nutze immer die Du-Form (duzen), niemals Sie.`}]
+      });
+      const data = await res.json();
+      const suggestions = (data.content?.[0]?.text||'').split('\n').map(s=>s.trim()).filter(s=>s.length>5&&s.length<80).slice(0,5);
+      container.innerHTML = '';
+      suggestions.forEach(s => {
+        const chip = document.createElement('button');
+        chip.className = 'suggestion-chip';
+        chip.textContent = s;
+        chip.onclick = () => { document.getElementById('chat-input').value = s; sendMessage(); };
+        container.appendChild(chip);
+      });
+    } catch { container.innerHTML = ''; }
+  }
+
+  // ── CHAT ──
+  function addMessage(role, content) {
+    const avatarEmoji = role==='assistant' ? '🤝' : ({male:'👨',female:'👩'}[profile.gender]||'🙂');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    div.innerHTML = `<div class="msg-avatar">${avatarEmoji}</div><div class="msg-bubble">${escapeHtml(content)}</div>`;
+    const c = document.getElementById('chat-messages');
+    c.appendChild(div);
+    c.scrollTop = c.scrollHeight;
+    return div.querySelector('.msg-bubble');
+  }
+
+  function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+  function addTyping() {
+    const div = document.createElement('div');
+    div.className = 'message assistant'; div.id = 'typing-msg';
+    div.innerHTML = `<div class="msg-avatar">🤝</div><div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+    const c = document.getElementById('chat-messages');
+    c.appendChild(div); c.scrollTop = c.scrollHeight;
+  }
+  function removeTyping() { document.getElementById('typing-msg')?.remove(); }
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text || isStreaming) return;
+    input.value = ''; autoResize(input);
+    document.getElementById('send-btn').disabled = true;
+    isStreaming = true;
+    addMessage('user', text);
+    messages.push({role:'user', content:text});
+    addTyping();
+
+    try {
+      const res = await callAnthropic({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        stream: true,
+        system: buildSystemPrompt(),
+        messages: messages.map(m=>({role:m.role,content:m.content}))
+      });
+      removeTyping();
+      const bubble = addMessage('assistant','');
+      let fullText = '';
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const {done,value} = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value,{stream:true});
+        const lines = buffer.split('\n'); buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data==='[DONE]') continue;
+          try {
+            const ev = JSON.parse(data);
+            if (ev.type==='content_block_delta'&&ev.delta?.type==='text_delta') {
+              fullText += ev.delta.text;
+              bubble.innerHTML = escapeHtml(fullText);
+              document.getElementById('chat-messages').scrollTop = 9999;
+            } else if (ev.type==='error') {
+              fullText = 'Es tut mir leid, ich kann gerade nicht antworten. Bitte versuche es erneut.';
+              bubble.innerHTML = escapeHtml(fullText);
+            }
+          } catch {}
+        }
+      }
+      messages.push({role:'assistant',content:fullText});
+      loadSuggestions();
+    } catch(e) {
+      removeTyping();
+      addMessage('assistant','Verbindungsfehler. Bitte prüfe deinen API-Key und versuche es erneut.');
+    }
+    isStreaming = false;
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('chat-input').focus();
+  }
+
+  function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendMessage(); } }
+  function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+
+  function resetApp() {
+    profile = {}; messages = []; currentStep = 1;
+    document.getElementById('screen-chat').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.add('active');
+    document.getElementById('reset-btn').style.display = 'none';
+    document.getElementById('chat-messages').innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
+    document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+    document.getElementById('step-1').classList.add('active');
+    document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
+    document.querySelectorAll('.btn-primary[id^="next"]').forEach(b=>b.disabled=true);
+    document.getElementById('children-count-wrap').classList.remove('visible');
+    renderStepIndicator();
+  }
+</script>
+</body>
+</html>

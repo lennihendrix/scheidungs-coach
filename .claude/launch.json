@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "divorce-coach",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3456,
+      "env": {
+        "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}"
+      }
+    }
+  ]
+}
