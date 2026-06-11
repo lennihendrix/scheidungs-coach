@@ -742,7 +742,6 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     supabase.auth.updateUser({ data: { coach_profile: null, coach_messages: null } });
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
-    document.getElementById('screen-apikey').classList.remove('active');
     document.getElementById('reset-btn').style.display = 'none';
     document.getElementById('chat-messages').innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
     document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
