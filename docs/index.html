@@ -310,10 +310,14 @@
   <div class="header-logo">⚖️</div>
   <div>
     <div class="header-title">Scheidungs-Coach</div>
-    <div class="header-sub">Dein persönlicher Begleiter</div>
+    <div class="header-sub">Dein persönlicher Begleiter &middot; <span id="version-label">v1.0</span></div>
   </div>
-  <button class="header-reset" id="apikey-btn" onclick="changeApiKey()" style="display:block">🔑 Key</button>
-  <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <span id="user-badge" style="font-size:12px;color:var(--text-muted);display:none"></span>
+    <button class="header-reset" id="apikey-btn" onclick="changeApiKey()" style="display:block">🔑 Key</button>
+    <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
+    <button class="header-reset" id="logout-btn" onclick="handleLogout()" style="display:none">Abmelden</button>
+  </div>
 </div>
 
 <!-- API KEY -->
@@ -456,7 +460,37 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ── VERSION ──
+  fetch('version.json').then(r => r.json()).then(d => {
+    document.getElementById('version-label').textContent = 'v' + d.version;
+  }).catch(() => {});
+
+  // ── AUTH GUARD ──
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+  } else {
+    const user = session.user;
+    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    const badge = document.getElementById('user-badge');
+    badge.textContent = '👤 ' + name;
+    badge.style.display = 'inline';
+    document.getElementById('logout-btn').style.display = 'block';
+    document.getElementById('apikey-btn').style.display = 'block';
+  }
+
+  window.handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = 'login.html';
+  };
+
   const BASE_URL = 'https://api.anthropic.com';
   const TOTAL_STEPS = 5;
   let currentStep = 1;
@@ -750,6 +784,14 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     document.getElementById('children-count-wrap').classList.remove('visible');
     renderStepIndicator();
   }
+  // Expose all functions to global scope (needed for inline onclick handlers in module context)
+  Object.assign(window, {
+    saveApiKey, renderStepIndicator, selectOption, toggleConcern,
+    showChildCount, hideChildCount, nextStep, prevStep, startChat,
+    sendMessage, handleKey, autoResize, changeApiKey, resetApp,
+    loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
+    buildSystemPrompt, callAnthropic
+  });
 </script>
 </body>
 </html>

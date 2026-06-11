@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login – Scheidungs-Coach</title>
+<link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="logo-icon">⚖️</div>
+    <h1>Scheidungs-Coach</h1>
+    <p>Dein persönlicher Begleiter</p>
+  </div>
+
+  <div class="auth-title">Willkommen zurück</div>
+  <div class="auth-sub">Melde dich an, um weiterzumachen.</div>
+
+  <div class="alert" id="alert"></div>
+
+  <form id="login-form" onsubmit="handleLogin(event)">
+    <div class="form-group">
+      <label class="form-label" for="email">E-Mail</label>
+      <input class="form-input" id="email" type="email" placeholder="du@beispiel.de" required autocomplete="email" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="password">Passwort</label>
+      <div class="input-wrap">
+        <input class="form-input" id="password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+        <button type="button" class="toggle-pw" onclick="togglePw('password', this)">👁️</button>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="submit-btn" type="submit">Anmelden</button>
+  </form>
+
+  <div class="auth-switch">
+    Noch kein Account? <a href="signup.html">Jetzt registrieren</a>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Already logged in? Redirect to app
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) window.location.href = 'index.html';
+
+  window.togglePw = (id, btn) => {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? '👁️' : '🙈';
+  };
+
+  window.handleLogin = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const alert = document.getElementById('alert');
+    alert.className = 'alert';
+    btn.disabled = true;
+    btn.textContent = 'Anmelden…';
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      alert.textContent = error.message === 'Invalid login credentials'
+        ? 'E-Mail oder Passwort falsch. Bitte erneut versuchen.'
+        : error.message;
+      alert.className = 'alert error';
+      btn.disabled = false;
+      btn.textContent = 'Anmelden';
+    } else {
+      window.location.href = 'index.html';
+    }
+  };
+</script>
+</body>
+</html>
