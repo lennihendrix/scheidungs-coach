@@ -409,7 +409,7 @@
 
   const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ── VERSION ──
   fetch('version.json').then(r => r.json()).then(d => {
@@ -418,14 +418,14 @@
 
   // ── GLOBAL HANDLERS (must be set before any await) ──
   window.handleLogout = async () => {
-    try { await supabase.auth.signOut(); } catch(e) { console.warn('signOut error:', e); }
+    try { await sbClient.auth.signOut(); } catch(e) { console.warn('signOut error:', e); }
     window.location.href = 'login.html';
   };
 
   // ── APP INIT (IIFE so we can use `return` instead of throw) ──
   (async () => {
   // ── AUTH GUARD ──
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   if (!session) {
     window.location.href = 'login.html';
     return; // clean stop — no throw, no broken module state
@@ -455,7 +455,7 @@
   // Speichert beliebige Felder via UPSERT (atomar, keine Race Conditions)
   async function dbSave(fields) {
     try {
-      const { data: { session: s } } = await supabase.auth.getSession();
+      const { data: { session: s } } = await sbClient.auth.getSession();
       if (!s) { console.warn('[db] kein Session beim Speichern'); return; }
       const body = JSON.stringify({
         user_id: s.user.id,
@@ -480,7 +480,7 @@
   // Lädt den gespeicherten Zustand aus der DB
   async function dbLoad() {
     try {
-      const { data: { session: s } } = await supabase.auth.getSession();
+      const { data: { session: s } } = await sbClient.auth.getSession();
       if (!s) return null;
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/chat_sessions?select=profile,messages&user_id=eq.${s.user.id}&limit=1`,
@@ -764,7 +764,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
         const errMsg = errData?.error?.message || `HTTP ${res.status}`;
         if (res.status === 401) {
           addMessage('assistant', '🔐 Sitzung abgelaufen. Bitte neu einloggen.');
-          setTimeout(() => { supabase.auth.signOut(); window.location.href = 'login.html'; }, 2000);
+          setTimeout(() => { sbClient.auth.signOut(); window.location.href = 'login.html'; }, 2000);
         } else {
           addMessage('assistant', `Fehler: ${errMsg}`);
         }
@@ -817,7 +817,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
 
   function resetApp() {
     profile = {}; messages = []; currentStep = 1;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    sbClient.auth.getSession().then(({ data: { session } }) => {
       if (session) fetch(
         `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${session.user.id}`,
         { method: 'DELETE', headers: _restHeaders(session.access_token) }
