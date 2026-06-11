@@ -59,50 +59,6 @@
   .screen { display: none; flex-direction: column; flex: 1; }
   .screen.active { display: flex; }
 
-  /* ── API KEY SCREEN ── */
-  #screen-apikey {
-    align-items: center;
-    justify-content: center;
-    padding: 24px 20px;
-  }
-  .apikey-card {
-    background: var(--white);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 32px 28px;
-    max-width: 460px;
-    width: 100%;
-    text-align: center;
-  }
-  .apikey-card .ak-emoji { font-size: 44px; margin-bottom: 16px; }
-  .apikey-card h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
-  .apikey-card p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
-  .apikey-card a { color: var(--brand); text-decoration: none; font-weight: 600; }
-  .apikey-card a:hover { text-decoration: underline; }
-  .ak-input-wrap {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .ak-input {
-    flex: 1;
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 14px;
-    font-family: monospace;
-    color: var(--text);
-    transition: border-color .2s;
-  }
-  .ak-input:focus { outline: none; border-color: var(--brand); }
-  .ak-note {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-align: left;
-    line-height: 1.5;
-  }
-  .ak-note strong { color: var(--text); }
-
   /* ── ONBOARDING ── */
   #screen-onboarding {
     align-items: center;
@@ -314,28 +270,8 @@
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <span id="user-badge" style="font-size:12px;color:var(--text-muted);display:none"></span>
-    <button class="header-reset" id="apikey-btn" onclick="changeApiKey()" style="display:block">🔑 Key</button>
     <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
     <button class="header-reset" id="logout-btn" onclick="handleLogout()" style="display:none">Abmelden</button>
-  </div>
-</div>
-
-<!-- API KEY -->
-<div id="screen-apikey" class="screen active">
-  <div class="apikey-card">
-    <div class="ak-emoji">🔑</div>
-    <h2>API-Key einrichten</h2>
-    <p>
-      Für den Scheidungs-Coach brauchst du einen Anthropic API-Key.<br>
-      Hole dir einen kostenlos unter <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
-    </p>
-    <div class="ak-input-wrap">
-      <input class="ak-input" id="api-key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off" />
-      <button class="btn btn-primary" style="flex:0;padding:12px 18px" onclick="saveApiKey()">Speichern</button>
-    </div>
-    <p class="ak-note">
-      <strong>Sicherheit:</strong> Dein Key wird nur in deinem Browser (localStorage) gespeichert und nie an einen Server weitergegeben. Die Kommunikation läuft direkt von deinem Gerät zu Anthropic.
-    </p>
   </div>
 </div>
 
@@ -483,7 +419,6 @@
     badge.textContent = '👤 ' + name;
     badge.style.display = 'inline';
     document.getElementById('logout-btn').style.display = 'block';
-    document.getElementById('apikey-btn').style.display = 'block';
   }
 
   window.handleLogout = async () => {
@@ -509,10 +444,7 @@
     if (saved_profile && Object.keys(saved_profile).length > 0) {
       profile = saved_profile;
       messages = saved_messages || [];
-      // Skip onboarding, go directly to chat and restore history
-      if (apiKey) {
-        renderChatFromSaved();
-      }
+      renderChatFromSaved();
       return true;
     }
     return false;
@@ -553,42 +485,19 @@
     loadSuggestions();
   }
 
-  const BASE_URL = 'https://api.anthropic.com';
+  const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.supabase.co/functions/v1';
   const TOTAL_STEPS = 5;
   let currentStep = 1;
   let profile = {};
   let messages = [];
   let isStreaming = false;
-  let apiKey = localStorage.getItem('scheidungscoach_apikey') || '';
 
   // ── INIT: try to restore saved state ──
   const restored = await restoreState();
   if (!restored) {
-    // First time: show onboarding or API key setup
-    if (apiKey) {
-      document.getElementById('screen-apikey').classList.remove('active');
-      document.getElementById('screen-onboarding').classList.add('active');
-    }
-    renderStepIndicator();
-  } else if (!apiKey) {
-    // Has profile but no API key yet
-    document.getElementById('screen-apikey').classList.add('active');
-    document.getElementById('screen-chat').classList.remove('active');
-  }
-
-  function saveApiKey() {
-    const val = document.getElementById('api-key-input').value.trim();
-    if (!val.startsWith('sk-ant-')) {
-      document.getElementById('api-key-input').style.borderColor = '#EF4444';
-      return;
-    }
-    apiKey = val;
-    localStorage.setItem('scheidungscoach_apikey', apiKey);
-    document.getElementById('screen-apikey').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     renderStepIndicator();
   }
-  document.getElementById('api-key-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
 
   // ── STEP INDICATOR ──
   function renderStepIndicator() {
@@ -688,15 +597,14 @@ Deine Rolle:
 Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen oder komplexen Rechtsfragen weise auf professionelle Hilfe hin.`;
   }
 
-  // ── API CALL ──
+  // ── API CALL via Supabase Edge Function ──
   async function callAnthropic(body) {
-    return fetch(`${BASE_URL}/v1/messages`, {
+    const { data: { session } } = await supabase.auth.getSession();
+    return fetch(`${FUNCTIONS_URL}/${body.stream ? 'chat' : 'suggestions'}`, {
       method: 'POST',
       headers: {
-        'X-Api-Key': apiKey,
         'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify(body)
     });
@@ -831,21 +739,12 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
   function handleKey(e) { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendMessage(); } }
   function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
 
-  function changeApiKey() {
-    localStorage.removeItem('scheidungscoach_apikey');
-    apiKey = '';
-    document.getElementById('screen-chat').classList.remove('active');
-    document.getElementById('screen-onboarding').classList.remove('active');
-    document.getElementById('screen-apikey').classList.add('active');
-    document.getElementById('reset-btn').style.display = 'none';
-    document.getElementById('api-key-input').value = '';
-  }
-
   function resetApp() {
     profile = {}; messages = []; currentStep = 1;
     supabase.auth.updateUser({ data: { coach_profile: null, coach_messages: null } });
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
+    document.getElementById('screen-apikey').classList.remove('active');
     document.getElementById('reset-btn').style.display = 'none';
     document.getElementById('chat-messages').innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
     document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
@@ -857,9 +756,9 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
   }
   // Expose all functions to global scope (needed for inline onclick handlers in module context)
   Object.assign(window, {
-    saveApiKey, renderStepIndicator, selectOption, toggleConcern,
+    renderStepIndicator, selectOption, toggleConcern,
     showChildCount, hideChildCount, nextStep, prevStep, startChat,
-    sendMessage, handleKey, autoResize, changeApiKey, resetApp,
+    sendMessage, handleKey, autoResize, resetApp,
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
   });
