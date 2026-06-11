@@ -620,7 +620,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
       const res = await callAnthropic({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 400,
-        messages: [{role:'user', content:`Generiere 5 kurze, relevante Fragen (max. 8 Wörter je Frage) für einen ${gender} in der ${status} ${children}.\n\nBisheriger Chatverlauf:\n${recent||'(noch kein Chat)'}\n\nGib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen. Fragen sollen zum Kontext passen und noch nicht besprochene Themen abdecken. Nutze immer die Du-Form (duzen), niemals Sie.`}]
+        messages: [{role:'user', content:`Du bist Assistent für einen Scheidungs-Coach. Generiere 5 kurze Fragen (max. 8 Wörter je Frage), die ein ${gender} in der ${status} ${children} dem Coach stellen könnte — also Fragen aus Nutzerperspektive, z.B. "Was passiert beim Trennungsjahr?" oder "Wie berechne ich Unterhalt?".\n\nBisheriger Chatverlauf:\n${recent||'(noch kein Chat)'}\n\nGib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen. Bevorzuge noch nicht besprochene, für die Situation besonders relevante Themen.`}]
       });
       const data = await res.json();
       const suggestions = (data.content?.[0]?.text||'').split('\n').map(s=>s.trim()).filter(s=>s.length>5&&s.length<80).slice(0,5);
