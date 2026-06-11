@@ -222,9 +222,10 @@
 
   .chat-input-area {
     padding: 12px 16px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-bottom: 12px;
+    padding-bottom: max(12px, calc(env(safe-area-inset-bottom) + 4px));
     background: var(--white); border-top: 1px solid var(--border);
-    display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;
+    display: flex; gap: 10px; align-items: center; flex-shrink: 0;
   }
   .chat-input-wrap {
     flex: 1; border: 2px solid var(--border); border-radius: 12px;
@@ -238,9 +239,11 @@
   }
   #chat-input::placeholder { color: var(--text-muted); }
   #send-btn {
-    width: 42px; height: 42px; border-radius: 10px; background: var(--brand);
+    width: 44px; height: 44px; border-radius: 10px; background: var(--brand);
     border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; transition: all .2s; font-size: 18px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   #send-btn:hover { background: var(--brand-dark); transform: scale(1.05); }
   #send-btn:disabled { background: var(--border); transform: none; cursor: default; }
