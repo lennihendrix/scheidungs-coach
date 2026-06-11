@@ -443,16 +443,35 @@
     return session;
   }
 
-  // ── UPSERT helper ──
+  // ── UPSERT helper: PATCH existing row, INSERT if none ──
   async function dbUpsert(body) {
     const session = await dbSession();
     if (!session) return;
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?on_conflict=user_id`, {
-      method: 'POST',
-      headers: { ...dbHeaders(session.access_token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ user_id: session.user.id, updated_at: new Date().toISOString(), ...body })
-    });
-    if (!res.ok) console.error('dbUpsert error:', res.status, await res.text());
+    const token = session.access_token;
+    const uid = session.user.id;
+    const payload = { updated_at: new Date().toISOString(), ...body };
+
+    // Try PATCH first (update existing row)
+    const patch = await fetch(
+      `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${uid}`,
+      {
+        method: 'PATCH',
+        headers: { ...dbHeaders(token), 'Prefer': 'return=minimal,count=exact' },
+        body: JSON.stringify(payload)
+      }
+    );
+    if (!patch.ok) { console.error('dbUpsert PATCH error:', patch.status, await patch.text()); return; }
+
+    // If no row was updated (Content-Range: */0), INSERT a new one
+    const range = patch.headers.get('Content-Range') || '';
+    if (range === '*/0' || range === '') {
+      const insert = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions`, {
+        method: 'POST',
+        headers: { ...dbHeaders(token), 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ user_id: uid, ...payload })
+      });
+      if (!insert.ok) console.error('dbUpsert INSERT error:', insert.status, await insert.text());
+    }
   }
 
   // ── SAVE PROFILE only (called from startChat — never overwrites messages) ──
