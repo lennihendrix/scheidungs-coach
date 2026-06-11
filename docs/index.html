@@ -413,7 +413,7 @@
 
   // ── GLOBAL HANDLERS (must be set before any await) ──
   window.handleLogout = async () => {
-    await supabase.auth.signOut();
+    try { await supabase.auth.signOut(); } catch(e) { console.warn('signOut error:', e); }
     window.location.href = 'login.html';
   };
 
