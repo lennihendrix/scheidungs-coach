@@ -491,6 +491,68 @@
     window.location.href = 'login.html';
   };
 
+  // ── PERSIST: save profile + messages to Supabase user metadata ──
+  async function saveState() {
+    // Keep max 60 messages to stay within metadata size limits
+    const trimmed = messages.slice(-60);
+    await supabase.auth.updateUser({
+      data: { coach_profile: profile, coach_messages: trimmed }
+    });
+  }
+
+  // ── RESTORE: load saved state on login ──
+  async function restoreState() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const saved_profile = user?.user_metadata?.coach_profile;
+    const saved_messages = user?.user_metadata?.coach_messages;
+
+    if (saved_profile && Object.keys(saved_profile).length > 0) {
+      profile = saved_profile;
+      messages = saved_messages || [];
+      // Skip onboarding, go directly to chat and restore history
+      if (apiKey) {
+        renderChatFromSaved();
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function renderChatFromSaved() {
+    // Build profile bar
+    const bar = document.getElementById('profile-bar');
+    const genderEmoji = {male:'👨',female:'👩',diverse:'🧑',no_answer:'🙂'}[profile.gender]||'🙂';
+    const genderLabel = {male:'Mann',female:'Frau',diverse:'Divers',no_answer:'Anonym'}[profile.gender]||'';
+    const statusLabel = {trennung:'Getrennt',ausgezogen:'Ausgezogen',scheidung:'Scheidung läuft',geschieden:'Geschieden'}[profile.status]||'';
+    const childLabel = profile.children==='yes' ? `👶 ${profile.childrenCount||'1'} Kind${(profile.childrenCount||1)>1?'er':''}` : '';
+    bar.innerHTML = [
+      `<span class="profile-badge">${genderEmoji} ${genderLabel}</span>`,
+      statusLabel ? `<span class="profile-badge">⚖️ ${statusLabel}</span>` : '',
+      profile.since ? `<span class="profile-badge">🕐 Seit ${profile.since}</span>` : '',
+      childLabel ? `<span class="profile-badge">${childLabel}</span>` : '',
+    ].filter(Boolean).join('');
+
+    // Restore chat history
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = '';
+    if (messages.length === 0) {
+      const isF = profile.gender === 'female';
+      container.innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3>${isF?'Hallo! Ich bin deine Coachin.':'Hallo! Ich bin dein Coach.'}</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
+    } else {
+      // Show last 30 messages visually (performance)
+      messages.slice(-30).forEach(m => addMessage(m.role, m.content));
+      // Scroll to bottom
+      setTimeout(() => container.scrollTop = container.scrollHeight, 50);
+    }
+
+    // Switch screens
+    document.getElementById('screen-apikey').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.remove('active');
+    document.getElementById('screen-chat').classList.add('active');
+    document.getElementById('reset-btn').style.display = 'block';
+    loadSuggestions();
+  }
+
   const BASE_URL = 'https://api.anthropic.com';
   const TOTAL_STEPS = 5;
   let currentStep = 1;
@@ -499,13 +561,19 @@
   let isStreaming = false;
   let apiKey = localStorage.getItem('scheidungscoach_apikey') || '';
 
-  // ── INIT ──
-  if (apiKey) {
-    document.getElementById('screen-apikey').classList.remove('active');
-    document.getElementById('screen-onboarding').classList.add('active');
+  // ── INIT: try to restore saved state ──
+  const restored = await restoreState();
+  if (!restored) {
+    // First time: show onboarding or API key setup
+    if (apiKey) {
+      document.getElementById('screen-apikey').classList.remove('active');
+      document.getElementById('screen-onboarding').classList.add('active');
+    }
     renderStepIndicator();
-  } else {
-    renderStepIndicator();
+  } else if (!apiKey) {
+    // Has profile but no API key yet
+    document.getElementById('screen-apikey').classList.add('active');
+    document.getElementById('screen-chat').classList.remove('active');
   }
 
   function saveApiKey() {
@@ -589,6 +657,7 @@
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
+    saveState();
     loadSuggestions();
   }
 
@@ -748,6 +817,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
         }
       }
       messages.push({role:'assistant',content:fullText});
+      saveState();
       loadSuggestions();
     } catch(e) {
       removeTyping();
@@ -773,6 +843,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
 
   function resetApp() {
     profile = {}; messages = []; currentStep = 1;
+    supabase.auth.updateUser({ data: { coach_profile: null, coach_messages: null } });
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
@@ -790,7 +861,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     showChildCount, hideChildCount, nextStep, prevStep, startChat,
     sendMessage, handleKey, autoResize, changeApiKey, resetApp,
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
-    buildSystemPrompt, callAnthropic
+    buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
   });
 </script>
 </body>
