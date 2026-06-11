@@ -401,6 +401,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  if (!window.supabase) {
+    document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;text-align:center"><h2>⚠️ Ladefehler</h2><p>Supabase konnte nicht geladen werden.<br>Bitte Seite neu laden.</p><button onclick="location.reload()" style="margin-top:16px;padding:12px 24px;background:#5B6EE8;color:white;border:none;border-radius:8px;font-size:16px">Neu laden</button></div>';
+    throw new Error('supabase not loaded');
+  }
   const { createClient } = window.supabase;
 
   const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
