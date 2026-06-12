@@ -60,6 +60,37 @@
   .screen { display: none; flex-direction: column; flex: 1; }
   .screen.active { display: flex; }
 
+  /* ── PAYWALL ── */
+  .paywall-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .paywall-overlay.active { display: flex; }
+  .paywall-blur { filter: blur(4px) brightness(0.7); pointer-events: none; user-select: none; }
+  .paywall-card {
+    background: var(--white); border-radius: 24px; padding: 36px 28px;
+    max-width: 380px; width: 100%; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .paywall-emoji { font-size: 48px; margin-bottom: 12px; }
+  .paywall-card h2 { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+  .paywall-card p { color: var(--text-muted); font-size: 15px; line-height: 1.5; margin-bottom: 24px; }
+  .paywall-price {
+    background: var(--brand-light); border-radius: 12px;
+    padding: 16px; margin-bottom: 24px;
+  }
+  .paywall-price .amount { font-size: 36px; font-weight: 900; color: var(--brand); }
+  .paywall-price .period { font-size: 14px; color: var(--text-muted); }
+  .btn-paywall {
+    width: 100%; padding: 16px; background: var(--brand); color: white;
+    border: none; border-radius: 14px; font-size: 17px; font-weight: 700;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-paywall:hover { background: var(--brand-dark); transform: translateY(-1px); }
+  .btn-paywall:disabled { opacity: 0.6; cursor: default; transform: none; }
+  .paywall-sub { margin-top: 12px; font-size: 12px; color: var(--text-muted); }
+
   /* ── ONBOARDING ── */
   #screen-onboarding {
     align-items: center;
@@ -444,6 +475,21 @@
   </div>
 </div>
 
+<!-- PAYWALL MODAL -->
+<div class="paywall-overlay" id="paywall-overlay">
+  <div class="paywall-card">
+    <div class="paywall-emoji">⚖️</div>
+    <h2>Dein Testzeitraum ist abgelaufen</h2>
+    <p>Du hast 7 Tage lang unbegrenzt Unterstützung erhalten. Mach weiter — du bist nicht allein.</p>
+    <div class="paywall-price">
+      <div class="amount">19 €</div>
+      <div class="period">pro Monat · jederzeit kündbar</div>
+    </div>
+    <button class="btn-paywall" id="paywall-btn" onclick="startCheckout()">Jetzt weitermachen →</button>
+    <p class="paywall-sub">Keine versteckten Kosten · Sofort aktiv · Sichere Zahlung via Stripe</p>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async () => {
@@ -477,6 +523,66 @@
     await sbClient.auth.signOut();
     window.location.href = 'login.html';
   };
+
+  // ── TRIAL / SUBSCRIPTION CHECK ──
+  async function checkAccess() {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return;
+
+    // Handle Stripe success redirect
+    if (new URLSearchParams(window.location.search).get('subscribed') === '1') {
+      history.replaceState({}, '', window.location.pathname);
+      // Wait a moment for webhook to process, then recheck
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    // Check subscription table
+    const { data: sub } = await sbClient.from('subscriptions')
+      .select('status, current_period_end')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    if (sub?.status === 'active' && sub?.current_period_end) {
+      if (new Date(sub.current_period_end) > new Date()) return; // active & valid
+    }
+
+    // Check 7-day trial
+    const createdAt = new Date(session.user.created_at);
+    const trialEnd = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+    if (new Date() <= trialEnd) return; // still in trial
+
+    // Trial expired & no active subscription → show paywall
+    showPaywall();
+  }
+
+  function showPaywall() {
+    document.getElementById('paywall-overlay').classList.add('active');
+    document.getElementById('screen-chat').classList.add('paywall-blur');
+    document.getElementById('screen-onboarding').classList.add('paywall-blur');
+  }
+
+  async function startCheckout() {
+    const btn = document.getElementById('paywall-btn');
+    btn.disabled = true;
+    btn.textContent = 'Weiterleitung…';
+    try {
+      const { data: { session } } = await sbClient.auth.getSession();
+      const res = await fetch(`${FUNCTIONS_URL}/create-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      });
+      const { url } = await res.json();
+      window.location.href = url;
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Jetzt weitermachen →';
+      alert('Fehler: ' + e.message);
+    }
+  }
+  window.startCheckout = startCheckout;
+
+  // Run access check after state is restored
+  setTimeout(checkAccess, 1500);
 
   // ── PERSIST: save profile + messages to chat_sessions table ──
   async function saveState() {
