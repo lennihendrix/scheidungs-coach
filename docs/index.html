@@ -725,7 +725,7 @@
     // Scroll after screen is visible
     if (messages.length > 0) requestAnimationFrame(() => requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; }));
     document.getElementById('reset-btn').style.display = 'block';
-    document.getElementById('edit-btn').style.display = 'block';
+    document.getElementById('profile-btn').style.display = 'block';
     loadSuggestions();
   }
 
@@ -814,7 +814,7 @@
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
-    document.getElementById('edit-btn').style.display = 'block';
+    document.getElementById('profile-btn').style.display = 'block';
     const _sb = document.getElementById('next-8'); if (_sb) _sb.textContent = 'Zum Coach →';
 
     if (isEditing) {
@@ -1016,7 +1016,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
-    document.getElementById('edit-btn').style.display = 'none';
+    document.getElementById('profile-btn').style.display = 'none';
     document.getElementById('chat-messages').innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
     document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
     document.getElementById('step-1').classList.add('active');
