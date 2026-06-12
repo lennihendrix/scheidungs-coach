@@ -376,6 +376,36 @@
 
     <!-- Step 6 -->
     <div class="step" id="step-6">
+      <div class="step-title">Wie läuft die Kommunikation mit deinem Ex?</div>
+      <div class="step-sub">Das hilft mir, passende Ratschläge zu geben.</div>
+      <div class="option-grid single">
+        <button class="option-btn" data-field="exComm" data-value="peaceful" onclick="selectOption(this)"><span class="opt-emoji">🕊️</span>Sachlich & friedlich</button>
+        <button class="option-btn" data-field="exComm" data-value="tense" onclick="selectOption(this)"><span class="opt-emoji">😬</span>Angespannt & schwierig</button>
+        <button class="option-btn" data-field="exComm" data-value="none" onclick="selectOption(this)"><span class="opt-emoji">🚫</span>Kaum oder kein Kontakt</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(5)">← Zurück</button>
+        <button class="btn btn-primary" id="next-8" onclick="nextStep(7)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="step" id="step-7">
+      <div class="step-title">Habt ihr gemeinsames Eigentum?</div>
+      <div class="step-sub">Z.B. Haus, Wohnung oder gemeinsame Konten.</div>
+      <div class="option-grid">
+        <button class="option-btn" data-field="property" data-value="house" onclick="selectOption(this)"><span class="opt-emoji">🏠</span>Haus oder Wohnung</button>
+        <button class="option-btn" data-field="property" data-value="other" onclick="selectOption(this)"><span class="opt-emoji">💰</span>Nur Konten / Sonstiges</button>
+        <button class="option-btn" data-field="property" data-value="no" onclick="selectOption(this)"><span class="opt-emoji">🚫</span>Nein</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(6)">← Zurück</button>
+        <button class="btn btn-primary" id="next-7" onclick="nextStep(8)" disabled>Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div class="step" id="step-8">
       <div class="step-title">Hast du schon einen Anwalt?</div>
       <div class="step-sub">So kann ich meine Hinweise besser auf dich abstimmen.</div>
       <div class="option-grid single">
@@ -385,8 +415,8 @@
         <button class="option-btn" data-field="lawyer" data-value="no" onclick="selectOption(this)"><span class="opt-emoji">🚫</span>Nein, noch keinen</button>
       </div>
       <div class="btn-row">
-        <button class="btn btn-secondary" onclick="prevStep(5)">← Zurück</button>
-        <button class="btn btn-primary" id="next-6" onclick="startChat()" disabled>Zum Coach →</button>
+        <button class="btn btn-secondary" onclick="prevStep(7)">← Zurück</button>
+        <button class="btn btn-primary" id="next-8" onclick="startChat()" disabled>Zum Coach →</button>
       </div>
     </div>
   </div>
@@ -520,7 +550,7 @@
   }
 
   const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.supabase.co/functions/v1';
-  const TOTAL_STEPS = 6;
+  const TOTAL_STEPS = 8;
   let currentStep = 1;
   let profile = {};
   let messages = [];
@@ -603,7 +633,7 @@
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
     document.getElementById('edit-btn').style.display = 'block';
-    const _sb = document.getElementById('next-6'); if (_sb) _sb.textContent = 'Zum Coach →';
+    const _sb = document.getElementById('next-8'); if (_sb) _sb.textContent = 'Zum Coach →';
 
     if (isEditing) {
       isEditing = false;
@@ -622,7 +652,11 @@
     const children = profile.children==='yes' ? `hat ${profile.childrenCount||'ein oder mehrere'} Kind(er)` : 'hat keine Kinder';
     const concerns = profile.concerns?.length ? `- Hauptanliegen: ${Array.isArray(profile.concerns)?profile.concerns.join(', '):profile.concerns}` : '';
     const lawyerMap = {yes_both:'Beide haben einen Anwalt',yes_only_me:'Nur der Nutzer hat einen Anwalt',searching:'Sucht noch einen Anwalt',no:'Noch kein Anwalt'};
-    const lawyer = profile.lawyer ? `- Anwaltssituation: ${lawyerMap[profile.lawyer]||'unbekannt'}` : '';
+    const lawyer = profile.lawyer ? `- Anwaltssituation: ${lawyerMap[profile.lawyer]}` : '';
+    const exCommMap = {peaceful:'sachlich und friedlich',tense:'angespannt und schwierig',none:'kaum oder kein Kontakt'};
+    const exComm = profile.exComm ? `- Kommunikation mit Ex: ${exCommMap[profile.exComm]}` : '';
+    const propertyMap = {house:'Immobilie vorhanden (Haus/Wohnung)',other:'Gemeinsame Konten/Sonstiges',no:'Kein gemeinsames Eigentum'};
+    const property = profile.property ? `- Gemeinsames Eigentum: ${propertyMap[profile.property]}` : '';
 
     return `Du bist ein einfühlsamer, professioneller Scheidungs-Coach. Du hilfst Menschen dabei, die emotionalen, praktischen und rechtlichen Herausforderungen einer Trennung oder Scheidung zu bewältigen.
 
@@ -630,6 +664,8 @@
 - Geschlecht: ${gender}
 - Situation: ${status}${since?', '+since:''}
 - Kinder: ${children}
+${exComm}
+${property}
 ${lawyer}
 ${concerns}
 
@@ -804,8 +840,8 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     document.getElementById('step-1').classList.add('active');
     document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
     document.querySelectorAll('.btn-primary[id^="next"]').forEach(b=>b.disabled=true);
-    document.getElementById('next-6').disabled = true;
-    const _sb = document.getElementById('next-6'); if (_sb) _sb.textContent = 'Zum Coach →';
+    document.getElementById('next-8').disabled = true;
+    const _sb = document.getElementById('next-8'); if (_sb) _sb.textContent = 'Zum Coach →';
     document.getElementById('children-count-wrap').classList.remove('visible');
     renderStepIndicator();
   }
@@ -822,8 +858,8 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     });
     // Enable all next/start buttons since values already exist
     document.querySelectorAll('.btn-primary[id^="next"]').forEach(b => b.disabled = false);
-    document.getElementById('next-6').disabled = false;
-    const _sb2 = document.getElementById('next-6'); if (_sb2) _sb2.textContent = 'Speichern →';
+    document.getElementById('next-8').disabled = false;
+    const _sb2 = document.getElementById('next-8'); if (_sb2) _sb2.textContent = 'Speichern →';
     // Restore children count if set
     if (profile.childrenCount) {
       document.getElementById('children-count').value = profile.childrenCount;
