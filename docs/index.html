@@ -399,8 +399,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async () => {
-  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.sbClient.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
+  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_r4ZvZgifmp8K82mSHulOiw_rcmS9jGF';
   const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ── VERSION ──
@@ -506,7 +506,7 @@
     loadSuggestions();
   }
 
-  const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.sbClient.co/functions/v1';
+  const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.supabase.co/functions/v1';
   const TOTAL_STEPS = 5;
   let currentStep = 1;
   let profile = {};
