@@ -91,6 +91,22 @@
   .btn-paywall:disabled { opacity: 0.6; cursor: default; transform: none; }
   .paywall-sub { margin-top: 12px; font-size: 12px; color: var(--text-muted); }
 
+  /* ── PROFIL PAGE ── */
+  #screen-profile { padding: 0; overflow-y: auto; }
+  .profile-page { max-width: 480px; margin: 0 auto; padding: 28px 20px 60px; width: 100%; }
+  .profile-section { background: var(--white); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .profile-section h3 { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
+  .profile-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .profile-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .profile-row-label { font-size: 14px; color: var(--text-muted); }
+  .profile-row-value { font-size: 14px; font-weight: 600; color: var(--text); }
+  .membership-badge { display: inline-flex; align-items: center; gap: 6px; background: #ECFDF5; color: #059669; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .membership-badge.trial { background: #FEF3C7; color: #D97706; }
+  .membership-badge.expired { background: #FEE2E2; color: #DC2626; }
+  .btn-danger { width: 100%; padding: 14px; background: none; border: 1.5px solid #DC2626; color: #DC2626; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .2s; margin-top: 4px; }
+  .btn-danger:hover { background: #FEE2E2; }
+  .btn-back { display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--brand); font-size: 15px; font-weight: 600; cursor: pointer; padding: 0 0 20px 0; }
+
   /* ── ONBOARDING ── */
   #screen-onboarding {
     align-items: center;
@@ -302,7 +318,7 @@
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <span id="user-badge" style="font-size:12px;color:var(--text-muted);display:none"></span>
-    <button class="header-reset" id="edit-btn" onclick="openEditProfile()" style="display:none">✏️ Profil</button>
+    <button class="header-reset" id="profile-btn" onclick="openProfilePage()" style="display:none">👤 Profil</button>
     <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
     <button class="header-reset" id="logout-btn" onclick="handleLogout()" style="display:none">Abmelden</button>
   </div>
@@ -475,6 +491,51 @@
   </div>
 </div>
 
+<!-- PROFIL -->
+<div id="screen-profile" class="screen">
+  <div class="profile-page">
+    <button class="btn-back" onclick="closeProfilePage()">← Zurück zum Coach</button>
+
+    <div class="profile-section">
+      <h3>Konto</h3>
+      <div class="profile-row">
+        <span class="profile-row-label">E-Mail</span>
+        <span class="profile-row-value" id="pp-email">–</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-row-label">Mitglied seit</span>
+        <span class="profile-row-value" id="pp-since">–</span>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3>Mitgliedschaft</h3>
+      <div class="profile-row">
+        <span class="profile-row-label">Status</span>
+        <span id="pp-membership">–</span>
+      </div>
+      <div class="profile-row" id="pp-period-row" style="display:none">
+        <span class="profile-row-label">Aktiv bis</span>
+        <span class="profile-row-value" id="pp-period">–</span>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3>Mein Profil</h3>
+      <div class="profile-row">
+        <span class="profile-row-label">Onboarding-Angaben</span>
+        <button class="header-reset" style="display:block;margin-left:0" onclick="openEditProfileFromPage()">✏️ Bearbeiten</button>
+      </div>
+    </div>
+
+    <div class="profile-section" id="pp-cancel-section" style="display:none">
+      <h3>Kündigung</h3>
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:14px">Dein Abo läuft bis zum Ende des bezahlten Zeitraums weiter.</p>
+      <button class="btn-danger" onclick="cancelSubscription()">Mitgliedschaft kündigen</button>
+    </div>
+  </div>
+</div>
+
 <!-- PAYWALL MODAL -->
 <div class="paywall-overlay" id="paywall-overlay">
   <div class="paywall-card">
@@ -517,10 +578,14 @@
     const badge = document.getElementById('user-badge');
     const daysSince = Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000);
     const trialLeft = Math.max(0, 7 - daysSince);
-    const trialText = trialLeft > 0 ? `🕐 ${trialLeft} Tag${trialLeft===1?'':'e'} Trial` : '⏰ Trial abgelaufen';
-    badge.textContent = '👤 ' + name + '  ·  ' + trialText;
+    // Check subscription for badge
+    const { data: subData } = await sbClient.from('subscriptions').select('status,current_period_end').eq('user_id', user.id).maybeSingle();
+    const isActive = subData?.status === 'active' && subData?.current_period_end && new Date(subData.current_period_end) > new Date();
+    const statusText = isActive ? '✅ Mitgliedschaft aktiv' : trialLeft > 0 ? `🕐 ${trialLeft} Tag${trialLeft===1?'':'e'} Trial` : '⏰ Trial abgelaufen';
+    badge.textContent = name + '  ·  ' + statusText;
     badge.style.display = 'inline';
     document.getElementById('logout-btn').style.display = 'block';
+    document.getElementById('profile-btn').style.display = 'block';
   }
 
   window.handleLogout = async () => {
@@ -963,6 +1028,68 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     renderStepIndicator();
   }
 
+  async function openProfilePage() {
+    const { data: { user } } = await sbClient.auth.getUser();
+    if (!user) return;
+    // Konto
+    document.getElementById('pp-email').textContent = user.email;
+    document.getElementById('pp-since').textContent = new Date(user.created_at).toLocaleDateString('de-DE', { day:'2-digit', month:'long', year:'numeric' });
+    // Mitgliedschaft
+    const { data: sub } = await sbClient.from('subscriptions').select('status,current_period_end').eq('user_id', user.id).maybeSingle();
+    const daysSince = Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000);
+    const trialLeft = Math.max(0, 7 - daysSince);
+    const ppMem = document.getElementById('pp-membership');
+    const isActive = sub?.status === 'active' && sub?.current_period_end && new Date(sub.current_period_end) > new Date();
+    if (isActive) {
+      ppMem.innerHTML = '<span class="membership-badge">✅ Aktiv</span>';
+      document.getElementById('pp-period-row').style.display = 'flex';
+      document.getElementById('pp-period').textContent = new Date(sub.current_period_end).toLocaleDateString('de-DE', { day:'2-digit', month:'long', year:'numeric' });
+      document.getElementById('pp-cancel-section').style.display = 'block';
+    } else if (trialLeft > 0) {
+      ppMem.innerHTML = `<span class="membership-badge trial">🕐 Trial – noch ${trialLeft} Tag${trialLeft===1?'':'e'}</span>`;
+    } else {
+      ppMem.innerHTML = '<span class="membership-badge expired">⏰ Abgelaufen</span>';
+    }
+    // Screen wechseln
+    document.getElementById('screen-chat').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.remove('active');
+    document.getElementById('screen-profile').classList.add('active');
+    document.getElementById('profile-btn').style.display = 'none';
+    document.getElementById('reset-btn').style.display = 'none';
+  }
+
+  function closeProfilePage() {
+    document.getElementById('screen-profile').classList.remove('active');
+    document.getElementById('screen-chat').classList.add('active');
+    document.getElementById('profile-btn').style.display = 'block';
+    document.getElementById('reset-btn').style.display = 'block';
+  }
+
+  function openEditProfileFromPage() {
+    document.getElementById('screen-profile').classList.remove('active');
+    openEditProfile();
+  }
+
+  async function cancelSubscription() {
+    if (!confirm('Mitgliedschaft wirklich kündigen? Dein Zugang bleibt bis zum Ende des bezahlten Zeitraums aktiv.')) return;
+    const { data: { session } } = await sbClient.auth.getSession();
+    try {
+      const res = await fetch(`${FUNCTIONS_URL}/cancel-subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        alert('Deine Mitgliedschaft wurde gekündigt. Du hast bis zum Ende des Abrechnungszeitraums weiterhin Zugang.');
+        document.getElementById('pp-cancel-section').style.display = 'none';
+        document.getElementById('pp-membership').innerHTML = '<span class="membership-badge trial">🔄 Gekündigt</span>';
+      } else {
+        alert('Fehler beim Kündigen. Bitte kontaktiere uns unter support@scheidungs-coach.de');
+      }
+    } catch(e) {
+      alert('Fehler beim Kündigen. Bitte versuche es später erneut.');
+    }
+  }
+
   function openEditProfile() {
     isEditing = true;
     // Pre-select single-choice options based on current profile
@@ -988,7 +1115,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     renderStepIndicator();
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
-    document.getElementById('edit-btn').style.display = 'none';
+    document.getElementById('profile-btn').style.display = 'none';
     document.getElementById('reset-btn').style.display = 'none';
   }
   // Expose all functions to global scope (needed for inline onclick handlers in module context)
@@ -997,7 +1124,8 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     setChildrenCount, showChildCount, hideChildCount, nextStep, prevStep, startChat, openEditProfile, resetApp,
     sendMessage, handleKey, autoResize,
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
-    buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
+    buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved,
+    openProfilePage, closeProfilePage, openEditProfileFromPage, cancelSubscription
   });
 })();
 </script>
