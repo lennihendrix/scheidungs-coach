@@ -513,7 +513,7 @@
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
     // Scroll after screen is visible
-    if (messages.length > 0) setTimeout(() => container.scrollTop = container.scrollHeight, 80);
+    if (messages.length > 0) requestAnimationFrame(() => requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; }));
     document.getElementById('reset-btn').style.display = 'block';
     document.getElementById('edit-btn').style.display = 'block';
     loadSuggestions();
