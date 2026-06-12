@@ -49,11 +49,12 @@
     background: none;
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 6px 12px;
+    padding: 6px 10px;
     font-size: 12px;
     color: var(--text-muted);
     cursor: pointer;
     display: none;
+    white-space: nowrap;
   }
   .header-reset:hover { border-color: var(--brand); color: var(--brand); }
 
@@ -302,6 +303,17 @@
   .welcome-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--brand-dark); }
   .welcome-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
 
+  @media (max-width: 480px) {
+    .header-reset { padding: 6px 8px; font-size: 11px; }
+    .btn-label-long { display: none; }
+    .btn-label-short { display: inline; }
+    .chat-input-area { padding: 8px 10px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    .chat-input-wrap { padding: 8px 10px; }
+  }
+  @media (min-width: 481px) {
+    .btn-label-short { display: none; }
+    .btn-label-long { display: inline; }
+  }
   @media (min-width: 600px) {
     #screen-onboarding { padding: 40px 20px 60px; }
     .message { max-width: 70%; }
@@ -318,9 +330,9 @@
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <span id="user-badge" style="font-size:12px;color:var(--text-muted);display:none"></span>
-    <button class="header-reset" id="profile-btn" onclick="openProfilePage()" style="display:none">👤 Profil</button>
-    <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
-    <button class="header-reset" id="logout-btn" onclick="handleLogout()" style="display:none">Abmelden</button>
+    <button class="header-reset" id="profile-btn" onclick="openProfilePage()" style="display:none">👤 <span class="btn-label-long">Profil</span></button>
+    <button class="header-reset" id="reset-btn" onclick="resetApp()"><span class="btn-label-long">Neu starten</span><span class="btn-label-short">↺</span></button>
+    <button class="header-reset" id="logout-btn" onclick="handleLogout()" style="display:none"><span class="btn-label-long">Abmelden</span><span class="btn-label-short">↪</span></button>
   </div>
 </div>
 
