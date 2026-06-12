@@ -533,17 +533,21 @@
     const { data: { user } } = await sbClient.auth.getUser(); // fresh from server
     if (!user) return;
 
-    // Handle Stripe success redirect
-    if (new URLSearchParams(window.location.search).get('subscribed') === '1') {
-      history.replaceState({}, '', window.location.pathname);
-      await new Promise(r => setTimeout(r, 2000));
-    }
+    // Handle Stripe success redirect — poll until webhook writes subscription (up to 12s)
+    const justSubscribed = new URLSearchParams(window.location.search).get('subscribed') === '1';
+    if (justSubscribed) history.replaceState({}, '', window.location.pathname);
 
-    // Check subscription table
-    const { data: sub } = await sbClient.from('subscriptions')
-      .select('status, current_period_end')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    const maxAttempts = justSubscribed ? 6 : 1;
+    let sub = null;
+    for (let i = 0; i < maxAttempts; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, 2000));
+      const { data } = await sbClient.from('subscriptions')
+        .select('status, current_period_end')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      sub = data;
+      if (sub?.status === 'active' && sub?.current_period_end && new Date(sub.current_period_end) > new Date()) return;
+    }
 
     if (sub?.status === 'active' && sub?.current_period_end) {
       if (new Date(sub.current_period_end) > new Date()) return; // active & valid
