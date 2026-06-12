@@ -597,7 +597,7 @@
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
     document.getElementById('edit-btn').style.display = 'block';
-    document.getElementById('next-6').textContent = 'Zum Coach →';
+    const _sb = document.getElementById('next-6'); if (_sb) _sb.textContent = 'Zum Coach →';
 
     if (isEditing) {
       isEditing = false;
@@ -764,7 +764,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
     document.querySelectorAll('.btn-primary[id^="next"]').forEach(b=>b.disabled=true);
     document.getElementById('next-6').disabled = true;
-    document.getElementById('next-6').textContent = 'Zum Coach →';
+    const _sb = document.getElementById('next-6'); if (_sb) _sb.textContent = 'Zum Coach →';
     document.getElementById('children-count-wrap').classList.remove('visible');
     renderStepIndicator();
   }
@@ -782,7 +782,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     // Enable all next/start buttons since values already exist
     document.querySelectorAll('.btn-primary[id^="next"]').forEach(b => b.disabled = false);
     document.getElementById('next-6').disabled = false;
-    document.getElementById('next-6').textContent = 'Speichern →';
+    const _sb2 = document.getElementById('next-6'); if (_sb2) _sb2.textContent = 'Speichern →';
     // Restore children count if set
     if (profile.childrenCount) {
       document.getElementById('children-count').value = profile.childrenCount;
