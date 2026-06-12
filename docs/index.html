@@ -526,6 +526,8 @@
       statusLabel ? `<span class="profile-badge">⚖️ ${statusLabel}</span>` : '',
       profile.since ? `<span class="profile-badge">🕐 Seit ${profile.since}</span>` : '',
       childLabel ? `<span class="profile-badge">${childLabel}</span>` : '',
+      profile.exComm ? `<span class="profile-badge">${{peaceful:'🕊️ Friedlich',tense:'😬 Angespannt',none:'🚫 Kein Kontakt'}[profile.exComm]}</span>` : '',
+      profile.property && profile.property !== 'no' ? `<span class="profile-badge">${{house:'🏠 Immobilie',other:'💰 Gemeins. Konten'}[profile.property]}</span>` : '',
     ].filter(Boolean).join('');
 
     // Restore chat history
@@ -624,6 +626,8 @@
       statusLabel ? `<span class="profile-badge">⚖️ ${statusLabel}</span>` : '',
       profile.since ? `<span class="profile-badge">🕐 Seit ${profile.since}</span>` : '',
       childLabel ? `<span class="profile-badge">${childLabel}</span>` : '',
+      profile.exComm ? `<span class="profile-badge">${{peaceful:'🕊️ Friedlich',tense:'😬 Angespannt',none:'🚫 Kein Kontakt'}[profile.exComm]}</span>` : '',
+      profile.property && profile.property !== 'no' ? `<span class="profile-badge">${{house:'🏠 Immobilie',other:'💰 Gemeins. Konten'}[profile.property]}</span>` : '',
     ].filter(Boolean).join('');
 
     const isF = profile.gender === 'female';
