@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Scheidungs-Coach – Gebaut von jemandem, der es selbst durchlebt</title>
 <meta name="description" content="Kein Anwalt. Kein Therapeut. Jemand, der seit 3,5 Jahren mittendrin steckt – mit Kindern, Anwälten, schlaflosen Nächten. Ein Coach, der wirklich versteht.">
+<link rel="preload" as="image" href="hero-1.jpg">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -53,20 +54,40 @@
 
   /* ── HERO ── */
   .hero {
-    background: linear-gradient(160deg, #1A1A2E 0%, #2D2D4E 60%, #3D52D5 100%);
+    background: #14142A;
     color: white;
     padding: 80px 24px 100px;
     text-align: center;
     position: relative;
     overflow: hidden;
   }
+  /* Slowly cross-fading background photos */
+  .hero-bg {
+    position: absolute; inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 2.5s ease-in-out;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero-bg.active { opacity: 1; }
+  /* Dark overlay so text stays readable over the photos */
+  .hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(160deg, rgba(20,20,42,0.82) 0%, rgba(26,26,46,0.78) 55%, rgba(61,82,213,0.55) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
   .hero::before {
     content: '';
     position: absolute; inset: 0;
-    background: radial-gradient(ellipse at 70% 50%, rgba(91,110,232,0.3) 0%, transparent 60%);
+    background: radial-gradient(ellipse at 70% 50%, rgba(91,110,232,0.25) 0%, transparent 60%);
     pointer-events: none;
+    z-index: 1;
   }
-  .hero-inner { max-width: 680px; margin: 0 auto; position: relative; }
+  .hero-inner { max-width: 680px; margin: 0 auto; position: relative; z-index: 2; }
   .hero-tag {
     display: inline-block;
     background: rgba(255,255,255,0.12);
@@ -314,6 +335,8 @@
 
 <!-- HERO -->
 <section class="hero">
+  <div class="hero-bg active" style="background-image:url('hero-1.jpg')"></div>
+  <div class="hero-bg" style="background-image:url('hero-2.jpg')"></div>
   <div class="hero-inner">
     <div class="hero-tag">⚖️ Kein Anwalt. Kein Ratgeber. Echte Erfahrung.</div>
     <h1>Du bist nicht allein.<br><em>Ich war auch dort.</em></h1>
@@ -511,6 +534,23 @@
   <a href="signup.html">Registrieren</a>
   </p>
 </footer>
+
+<script>
+  // Sanfter, langsamer Wechsel der Hero-Hintergrundbilder.
+  // 8s pro Bild + 2,5s Cross-Fade — ruhig, nicht aufdringlich.
+  (function () {
+    var slides = document.querySelectorAll('.hero-bg');
+    if (slides.length < 2) return;
+    // Respektiere "weniger Bewegung"-Systemeinstellung
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var i = 0;
+    setInterval(function () {
+      slides[i].classList.remove('active');
+      i = (i + 1) % slides.length;
+      slides[i].classList.add('active');
+    }, 8000);
+  })();
+</script>
 
 </body>
 </html>
