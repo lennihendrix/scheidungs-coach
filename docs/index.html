@@ -24,6 +24,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text);
+    min-height: 100vh;
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
@@ -153,7 +154,7 @@
   .btn-secondary:hover { border-color: var(--brand); color: var(--brand); }
 
   /* ── CHAT ── */
-  #screen-chat { flex-direction: column; height: 100dvh; overflow: hidden; }
+  #screen-chat { flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
 
   .profile-bar {
     background: var(--brand-light);
@@ -416,6 +417,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async () => {
+  if (!window.supabase) {
+    document.body.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif"><p style="font-size:18px">⚠️ Laden fehlgeschlagen.</p><p style="margin-top:12px;color:#666">Bitte Seite neu laden oder Internetverbindung prüfen.</p><button onclick="location.reload()" style="margin-top:20px;padding:12px 24px;background:#5B6EE8;color:white;border:none;border-radius:12px;font-size:16px;cursor:pointer">Neu laden</button></div>';
+    return;
+  }
   const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
   const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
