@@ -668,16 +668,16 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
       const res = await callAnthropic({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 400,
-        messages: [{role:'user', content:`Du bist Assistent für einen Scheidungs-Coach. Generiere genau 5 kurze Fragen (max. 8 Wörter je Frage) aus Nutzerperspektive für ein ${gender} in der ${status} ${children}.
+        messages: [{role:'user', content:`Du hilfst einem ${gender} in der ${status} ${children}. Generiere 5 kurze Fragen (max. 8 Wörter), die diese Person ihrem Scheidungs-Coach stellen würde — also Nachrichten, die der User in das Chat-Eingabefeld tippt, z.B. "Was passiert beim Trennungsjahr?" oder "Wie berechne ich meinen Unterhalt?".
 
 Bisheriger Chatverlauf:
 ${recent||'(noch kein Chat)'}
 
-Regel: Generiere GENAU in dieser Reihenfolge:
-- Fragen 1–3: direkt anknüpfend an den bisherigen Chatverlauf (konkrete Folgefragen, nächste Schritte, Details vertiefen). Falls noch kein Chat: situationsspezifische Einstiegsfragen.
-- Fragen 4–5: neue Themen aus anderen Bereichen (z.B. Finanzen, Emotionen, Kinder, Recht, Neustart) — Inspiration für Menschen, die nicht wissen was sie fragen sollen.
+Generiere GENAU in dieser Reihenfolge:
+- Fragen 1–3: sinnvolle Folgefragen basierend auf dem bisherigen Gespräch (was würde die Person als nächstes fragen wollen?). Falls kein Chat: konkrete Einstiegsfragen zur Situation.
+- Fragen 4–5: Fragen zu völlig anderen Themen (Finanzen, Emotionen, Kinder, Recht, Wohnung, Neustart) — für Menschen, die nicht wissen was sie noch fragen könnten.
 
-Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung, Kategorien oder Erklärungen.`}]
+Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}]
       });
       const data = await res.json();
       const suggestions = (data.content?.[0]?.text||'').split('\n').map(s=>s.trim()).filter(s=>s.length>5&&s.length<80).slice(0,5);
