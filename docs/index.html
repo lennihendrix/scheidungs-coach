@@ -754,7 +754,6 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
 
   function resetApp() {
     profile = {}; messages = []; currentStep = 1; isEditing = false;
-    sbClient.auth.updateUser({ data: { coach_profile: null, coach_messages: null } });
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
