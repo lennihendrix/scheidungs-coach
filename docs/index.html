@@ -222,10 +222,9 @@
 
   .chat-input-area {
     padding: 12px 16px;
-    padding-bottom: 12px;
-    padding-bottom: max(12px, calc(env(safe-area-inset-bottom) + 4px));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
     background: var(--white); border-top: 1px solid var(--border);
-    display: flex; gap: 10px; align-items: center; flex-shrink: 0;
+    display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;
   }
   .chat-input-wrap {
     flex: 1; border: 2px solid var(--border); border-radius: 12px;
@@ -239,11 +238,9 @@
   }
   #chat-input::placeholder { color: var(--text-muted); }
   #send-btn {
-    width: 44px; height: 44px; border-radius: 10px; background: var(--brand);
+    width: 42px; height: 42px; border-radius: 10px; background: var(--brand);
     border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; transition: all .2s; font-size: 18px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
   }
   #send-btn:hover { background: var(--brand-dark); transform: scale(1.05); }
   #send-btn:disabled { background: var(--border); transform: none; cursor: default; }
@@ -399,12 +396,12 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-(async () => {
-  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.sbClient.co';
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
-  const sbClient = window.sbClient.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ── VERSION ──
   fetch('version.json').then(r => r.json()).then(d => {
@@ -412,7 +409,7 @@
   }).catch(() => {});
 
   // ── AUTH GUARD ──
-  const { data: { session } } = await sbClient.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     window.location.href = 'login.html';
   } else {
@@ -425,67 +422,31 @@
   }
 
   window.handleLogout = async () => {
-    await sbClient.auth.signOut();
+    await supabase.auth.signOut();
     window.location.href = 'login.html';
   };
 
-  // ── Direct REST helpers (avoids Supabase JS client CORS issues) ──
-  function dbHeaders(token) {
-    return {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    };
-  }
-
-  async function dbSession() {
-    const { data: { session } } = await sbClient.auth.getSession();
-    return session;
-  }
-
-  // ── UPSERT helper ──
-  async function dbUpsert(body) {
-    const session = await dbSession();
-    if (!session) return;
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?on_conflict=user_id`, {
-      method: 'POST',
-      headers: { ...dbHeaders(session.access_token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ user_id: session.user.id, updated_at: new Date().toISOString(), ...body })
-    });
-    if (!res.ok) console.error('dbUpsert error:', res.status, await res.text());
-  }
-
-  // ── SAVE PROFILE only (called from startChat — never overwrites messages) ──
-  async function saveProfile() {
-    try { await dbUpsert({ profile }); }
-    catch (e) { console.error('saveProfile failed:', e); }
-  }
-
-  // ── SAVE MESSAGES (called only after real chat interactions) ──
+  // ── PERSIST: save profile + messages to Supabase user metadata ──
   async function saveState() {
-    try { await dbUpsert({ profile, messages }); }
-    catch (e) { console.error('saveState failed:', e); }
+    // Keep max 60 messages to stay within metadata size limits
+    const trimmed = messages.slice(-60);
+    await supabase.auth.updateUser({
+      data: { coach_profile: profile, coach_messages: trimmed }
+    });
   }
 
-  // ── RESTORE: load saved state from chat_sessions table ──
+  // ── RESTORE: load saved state on login ──
   async function restoreState() {
-    try {
-      const session = await dbSession();
-      if (!session) return false;
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/chat_sessions?select=profile,messages&user_id=eq.${session.user.id}&limit=1`,
-        { headers: dbHeaders(session.access_token) }
-      );
-      if (!res.ok) { console.error('restoreState HTTP error:', res.status); return false; }
-      const rows = await res.json();
-      const data = rows[0];
-      if (data?.profile && Object.keys(data.profile).length > 0) {
-        profile = data.profile;
-        messages = data.messages || [];
-        renderChatFromSaved();
-        return true;
-      }
-    } catch (e) { console.error('restoreState failed:', e); }
+    const { data: { user } } = await supabase.auth.getUser();
+    const saved_profile = user?.user_metadata?.coach_profile;
+    const saved_messages = user?.user_metadata?.coach_messages;
+
+    if (saved_profile && Object.keys(saved_profile).length > 0) {
+      profile = saved_profile;
+      messages = saved_messages || [];
+      renderChatFromSaved();
+      return true;
+    }
     return false;
   }
 
@@ -510,18 +471,10 @@
       const isF = profile.gender === 'female';
       container.innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3>${isF?'Hallo! Ich bin deine Coachin.':'Hallo! Ich bin dein Coach.'}</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
     } else {
-      const VISIBLE = 60;
-      if (messages.length > VISIBLE) {
-        const hidden = messages.length - VISIBLE;
-        container.innerHTML = `<div style="text-align:center;padding:12px 16px;font-size:13px;color:var(--text-muted)">↑ ${hidden} ältere Nachrichten im Kontext (werden vom Coach berücksichtigt)</div>`;
-      }
-      messages.slice(-VISIBLE).forEach(m => addMessage(m.role, m.content));
+      // Show last 30 messages visually (performance)
+      messages.slice(-30).forEach(m => addMessage(m.role, m.content));
       // Scroll to bottom
-      setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-        // Second pass after layout settles
-        requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
-      }, 150);
+      setTimeout(() => container.scrollTop = container.scrollHeight, 50);
     }
 
     // Switch screens
@@ -531,7 +484,7 @@
     loadSuggestions();
   }
 
-  const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.sbClient.co/functions/v1';
+  const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.supabase.co/functions/v1';
   const TOTAL_STEPS = 5;
   let currentStep = 1;
   let profile = {};
@@ -593,8 +546,7 @@
     renderStepIndicator();
   }
 
-  async function startChat() {
-    // Check if user already has history in DB — don't overwrite it with empty messages
+  function startChat() {
     const bar = document.getElementById('profile-bar');
     const genderEmoji = {male:'👨',female:'👩',diverse:'🧑',no_answer:'🙂'}[profile.gender]||'🙂';
     const genderLabel = {male:'Mann',female:'Frau',diverse:'Divers',no_answer:'Anonym'}[profile.gender]||'';
@@ -613,7 +565,7 @@
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
-    saveProfile(); // saves only profile, never overwrites existing messages
+    saveState();
     loadSuggestions();
   }
 
@@ -723,8 +675,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
         max_tokens: 1024,
         stream: true,
         system: buildSystemPrompt(),
-        // Send up to last 100 messages for context (token safety), full history stays in DB
-        messages: messages.slice(-100).map(m=>({role:m.role,content:m.content}))
+        messages: messages.map(m=>({role:m.role,content:m.content}))
       });
       removeTyping();
 
@@ -734,7 +685,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
         const errMsg = errData?.error?.message || `HTTP ${res.status}`;
         if (res.status === 401) {
           addMessage('assistant', '🔐 Sitzung abgelaufen. Bitte neu einloggen.');
-          setTimeout(() => { sbClient.auth.signOut(); window.location.href = 'login.html'; }, 2000);
+          setTimeout(() => { supabase.auth.signOut(); window.location.href = 'login.html'; }, 2000);
         } else {
           addMessage('assistant', `Fehler: ${errMsg}`);
         }
@@ -787,12 +738,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
 
   function resetApp() {
     profile = {}; messages = []; currentStep = 1;
-    sbClient.auth.getSession().then(({ data: { session } }) => {
-      if (session) fetch(
-        `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${session.user.id}`,
-        { method: 'DELETE', headers: dbHeaders(session.access_token) }
-      );
-    });
+    supabase.auth.updateUser({ data: { coach_profile: null, coach_messages: null } });
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
@@ -812,7 +758,6 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
   });
-})();
 </script>
 </body>
 </html>
