@@ -721,6 +721,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
       const res = await callAnthropic({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
+        stream: true,
         system: buildSystemPrompt(),
         messages: messages.map(m=>({role:m.role,content:m.content}))
       });
@@ -740,10 +741,35 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
         return;
       }
 
-      const data = await res.json();
-      const fullText = data.content?.[0]?.text || '';
-      addMessage('assistant', fullText);
-      messages.push({role:'assistant',content:fullText});
+      const bubble = addMessage('assistant', '');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let buf = '';
+      const chatEl = document.getElementById('chat-messages');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6).trim();
+          if (raw === '[DONE]') continue;
+          try {
+            const ev = JSON.parse(raw);
+            if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+              fullText += ev.delta.text;
+              bubble.innerHTML = escapeHtml(fullText);
+              chatEl.scrollTop = chatEl.scrollHeight;
+            }
+          } catch {}
+        }
+      }
+
+      messages.push({role:'assistant', content:fullText});
       saveState();
       loadSuggestions();
     } catch(e) {
