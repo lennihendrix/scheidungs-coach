@@ -514,7 +514,10 @@
     const user = session.user;
     const name = user.user_metadata?.full_name || user.email.split('@')[0];
     const badge = document.getElementById('user-badge');
-    badge.textContent = '👤 ' + name;
+    const daysSince = Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000);
+    const trialLeft = Math.max(0, 7 - daysSince);
+    const trialText = trialLeft > 0 ? `🕐 ${trialLeft} Tag${trialLeft===1?'':'e'} Trial` : '⏰ Trial abgelaufen';
+    badge.textContent = '👤 ' + name + '  ·  ' + trialText;
     badge.style.display = 'inline';
     document.getElementById('logout-btn').style.display = 'block';
   }
