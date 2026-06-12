@@ -385,7 +385,7 @@
       </div>
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="prevStep(5)">← Zurück</button>
-        <button class="btn btn-primary" id="start-btn" onclick="startChat()" disabled>Zum Coach →</button>
+        <button class="btn btn-primary" id="next-6" onclick="startChat()" disabled>Zum Coach →</button>
       </div>
     </div>
   </div>
@@ -607,7 +607,7 @@
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
     document.getElementById('edit-btn').style.display = 'block';
-    document.getElementById('start-btn').textContent = 'Zum Coach →';
+    document.getElementById('next-6').textContent = 'Zum Coach →';
 
     if (isEditing) {
       isEditing = false;
@@ -774,8 +774,8 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     document.getElementById('step-1').classList.add('active');
     document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
     document.querySelectorAll('.btn-primary[id^="next"]').forEach(b=>b.disabled=true);
-    document.getElementById('start-btn').disabled = true;
-    document.getElementById('start-btn').textContent = 'Zum Coach →';
+    document.getElementById('next-6').disabled = true;
+    document.getElementById('next-6').textContent = 'Zum Coach →';
     document.getElementById('children-count-wrap').classList.remove('visible');
     renderStepIndicator();
   }
@@ -792,8 +792,8 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     });
     // Enable all next/start buttons since values already exist
     document.querySelectorAll('.btn-primary[id^="next"]').forEach(b => b.disabled = false);
-    document.getElementById('start-btn').disabled = false;
-    document.getElementById('start-btn').textContent = 'Speichern →';
+    document.getElementById('next-6').disabled = false;
+    document.getElementById('next-6').textContent = 'Speichern →';
     // Restore children count if set
     if (profile.childrenCount) {
       document.getElementById('children-count').value = profile.childrenCount;
