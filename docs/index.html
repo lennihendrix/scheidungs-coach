@@ -270,6 +270,7 @@
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <span id="user-badge" style="font-size:12px;color:var(--text-muted);display:none"></span>
+    <button class="header-reset" id="edit-btn" onclick="openEditProfile()" style="display:none">✏️ Profil</button>
     <button class="header-reset" id="reset-btn" onclick="resetApp()">Neu starten</button>
     <button class="header-reset" id="logout-btn" onclick="handleLogout()" style="display:none">Abmelden</button>
   </div>
@@ -368,7 +369,23 @@
       </div>
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="prevStep(4)">← Zurück</button>
-        <button class="btn btn-primary" onclick="startChat()">Zum Coach →</button>
+        <button class="btn btn-primary" id="next-5" onclick="nextStep(6)">Weiter →</button>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step" id="step-6">
+      <div class="step-title">Hast du schon einen Anwalt?</div>
+      <div class="step-sub">So kann ich meine Hinweise besser auf dich abstimmen.</div>
+      <div class="option-grid single">
+        <button class="option-btn" data-field="lawyer" data-value="yes_both" onclick="selectOption(this)"><span class="opt-emoji">⚖️</span>Ja, wir haben beide einen Anwalt</button>
+        <button class="option-btn" data-field="lawyer" data-value="yes_only_me" onclick="selectOption(this)"><span class="opt-emoji">✅</span>Ja, aber nur ich</button>
+        <button class="option-btn" data-field="lawyer" data-value="searching" onclick="selectOption(this)"><span class="opt-emoji">🔍</span>Noch nicht – ich suche gerade</button>
+        <button class="option-btn" data-field="lawyer" data-value="no" onclick="selectOption(this)"><span class="opt-emoji">🚫</span>Nein, noch keinen</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prevStep(5)">← Zurück</button>
+        <button class="btn btn-primary" id="start-btn" onclick="startChat()" disabled>Zum Coach →</button>
       </div>
     </div>
   </div>
@@ -503,15 +520,17 @@
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
+    document.getElementById('edit-btn').style.display = 'block';
     loadSuggestions();
   }
 
   const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.supabase.co/functions/v1';
-  const TOTAL_STEPS = 5;
+  const TOTAL_STEPS = 6;
   let currentStep = 1;
   let profile = {};
   let messages = [];
   let isStreaming = false;
+  let isEditing = false;
 
   // ── INIT: try to restore saved state ──
   const restored = await restoreState();
@@ -587,6 +606,14 @@
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
+    document.getElementById('edit-btn').style.display = 'block';
+    document.getElementById('start-btn').textContent = 'Zum Coach →';
+
+    if (isEditing) {
+      isEditing = false;
+      saveState();
+      return;
+    }
     saveState();
     loadSuggestions();
   }
@@ -598,6 +625,8 @@
     const since = profile.since ? `seit ${profile.since}` : '';
     const children = profile.children==='yes' ? `hat ${profile.childrenCount||'ein oder mehrere'} Kind(er)` : 'hat keine Kinder';
     const concerns = profile.concerns?.length ? `- Hauptanliegen: ${Array.isArray(profile.concerns)?profile.concerns.join(', '):profile.concerns}` : '';
+    const lawyerMap = {yes_both:'Beide haben einen Anwalt',yes_only_me:'Nur der Nutzer hat einen Anwalt',searching:'Sucht noch einen Anwalt',no:'Noch kein Anwalt'};
+    const lawyer = profile.lawyer ? `- Anwaltssituation: ${lawyerMap[profile.lawyer]||'unbekannt'}` : '';
 
     return `Du bist ein einfühlsamer, professioneller Scheidungs-Coach. Du hilfst Menschen dabei, die emotionalen, praktischen und rechtlichen Herausforderungen einer Trennung oder Scheidung zu bewältigen.
 
@@ -605,13 +634,14 @@
 - Geschlecht: ${gender}
 - Situation: ${status}${since?', '+since:''}
 - Kinder: ${children}
+${lawyer}
 ${concerns}
 
 Deine Rolle:
 - Sei empathisch, verständnisvoll und unterstützend
 - Gib praktische, konkrete Ratschläge
 - Beachte die spezifische Situation des Nutzers
-- Weise bei rechtlichen Fragen auf die Notwendigkeit eines Anwalts hin
+- Weise bei rechtlichen Fragen auf die Notwendigkeit eines Anwalts hin — aber nur wenn der Nutzer noch keinen hat
 - Antworte auf Deutsch, klar und in angemessener Länge (2-5 Sätze für einfache Fragen, mehr wenn nötig)
 - Duze den Nutzer IMMER — niemals siezen, kein "Sie" oder "Ihnen"
 
@@ -733,24 +763,56 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
   function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
 
   function resetApp() {
-    profile = {}; messages = []; currentStep = 1;
+    profile = {}; messages = []; currentStep = 1; isEditing = false;
     sbClient.auth.updateUser({ data: { coach_profile: null, coach_messages: null } });
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
+    document.getElementById('edit-btn').style.display = 'none';
     document.getElementById('chat-messages').innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
     document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
     document.getElementById('step-1').classList.add('active');
     document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
     document.querySelectorAll('.btn-primary[id^="next"]').forEach(b=>b.disabled=true);
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('start-btn').textContent = 'Zum Coach →';
     document.getElementById('children-count-wrap').classList.remove('visible');
     renderStepIndicator();
+  }
+
+  function openEditProfile() {
+    isEditing = true;
+    // Pre-select single-choice options based on current profile
+    document.querySelectorAll('.option-btn[data-field]').forEach(btn => {
+      btn.classList.toggle('selected', profile[btn.dataset.field] === btn.dataset.value);
+    });
+    // Pre-select multi-choice concerns
+    document.querySelectorAll('.option-btn[data-value]:not([data-field])').forEach(btn => {
+      btn.classList.toggle('selected', Array.isArray(profile.concerns) && profile.concerns.includes(btn.dataset.value));
+    });
+    // Enable all next/start buttons since values already exist
+    document.querySelectorAll('.btn-primary[id^="next"]').forEach(b => b.disabled = false);
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('start-btn').textContent = 'Speichern →';
+    // Restore children count if set
+    if (profile.childrenCount) {
+      document.getElementById('children-count').value = profile.childrenCount;
+      document.getElementById('children-count-wrap').classList.add('visible');
+    }
+    currentStep = 1;
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-1').classList.add('active');
+    renderStepIndicator();
+    document.getElementById('screen-chat').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.add('active');
+    document.getElementById('edit-btn').style.display = 'none';
+    document.getElementById('reset-btn').style.display = 'none';
   }
   // Expose all functions to global scope (needed for inline onclick handlers in module context)
   Object.assign(window, {
     renderStepIndicator, selectOption, toggleConcern,
-    showChildCount, hideChildCount, nextStep, prevStep, startChat,
-    sendMessage, handleKey, autoResize, resetApp,
+    showChildCount, hideChildCount, nextStep, prevStep, startChat, openEditProfile, resetApp,
+    sendMessage, handleKey, autoResize,
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
   });
