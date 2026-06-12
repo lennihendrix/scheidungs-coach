@@ -409,8 +409,8 @@
   <div class="chat-input-area">
     <div class="chat-input-wrap">
       <textarea id="chat-input" placeholder="Deine Frage..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">➤</button>
     </div>
-    <button id="send-btn" onclick="sendMessage()">➤</button>
   </div>
 </div>
 
@@ -507,13 +507,13 @@
     } else {
       // Show last 30 messages visually (performance)
       messages.slice(-30).forEach(m => addMessage(m.role, m.content));
-      // Scroll to bottom
-      setTimeout(() => container.scrollTop = container.scrollHeight, 50);
     }
 
     // Switch screens
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
+    // Scroll after screen is visible
+    if (messages.length > 0) setTimeout(() => container.scrollTop = container.scrollHeight, 80);
     document.getElementById('reset-btn').style.display = 'block';
     document.getElementById('edit-btn').style.display = 'block';
     loadSuggestions();
