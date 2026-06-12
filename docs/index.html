@@ -426,27 +426,49 @@
     window.location.href = 'login.html';
   };
 
-  // ── PERSIST: save profile + messages to Supabase user metadata ──
+  // ── PERSIST: save profile + messages to chat_sessions table ──
   async function saveState() {
-    // Keep max 60 messages to stay within metadata size limits
-    const trimmed = messages.slice(-60);
-    await sbClient.auth.updateUser({
-      data: { coach_profile: profile, coach_messages: trimmed }
-    });
+    try {
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (!session) return;
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?on_conflict=user_id`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + session.access_token,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({
+          user_id: session.user.id,
+          profile: profile,
+          messages: messages.slice(-60),
+          updated_at: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) console.error('saveState error:', res.status, await res.text());
+    } catch (e) { console.error('saveState failed:', e); }
   }
 
-  // ── RESTORE: load saved state on login ──
+  // ── RESTORE: load saved state from chat_sessions table ──
   async function restoreState() {
-    const { data: { user } } = await sbClient.auth.getUser();
-    const saved_profile = user?.user_metadata?.coach_profile;
-    const saved_messages = user?.user_metadata?.coach_messages;
-
-    if (saved_profile && Object.keys(saved_profile).length > 0) {
-      profile = saved_profile;
-      messages = saved_messages || [];
-      renderChatFromSaved();
-      return true;
-    }
+    try {
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (!session) return false;
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/chat_sessions?select=profile,messages&user_id=eq.${session.user.id}&limit=1`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + session.access_token } }
+      );
+      if (!res.ok) return false;
+      const rows = await res.json();
+      const saved = rows[0];
+      if (saved?.profile && Object.keys(saved.profile).length > 0) {
+        profile = saved.profile;
+        messages = Array.isArray(saved.messages) ? saved.messages : [];
+        renderChatFromSaved();
+        return true;
+      }
+    } catch (e) { console.error('restoreState failed:', e); }
     return false;
   }
 
