@@ -343,7 +343,7 @@
       <div class="children-count" id="children-count-wrap">
         <div class="form-group">
           <label class="form-label">Wie viele Kinder?</label>
-          <select class="form-select" id="children-count" onchange="profile.childrenCount = this.value">
+          <select class="form-select" id="children-count" onchange="setChildrenCount(this.value)">
             <option value="1">1 Kind</option><option value="2">2 Kinder</option>
             <option value="3">3 Kinder</option><option value="4+">4 oder mehr</option>
           </select>
@@ -560,6 +560,7 @@
     }
   }
 
+  function setChildrenCount(val) { profile.childrenCount = val; }
   function showChildCount() { document.getElementById('children-count-wrap').classList.add('visible'); profile.childrenCount = '1'; }
   function hideChildCount() { document.getElementById('children-count-wrap').classList.remove('visible'); delete profile.childrenCount; }
 
@@ -800,7 +801,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
   // Expose all functions to global scope (needed for inline onclick handlers in module context)
   Object.assign(window, {
     renderStepIndicator, selectOption, toggleConcern,
-    showChildCount, hideChildCount, nextStep, prevStep, startChat, openEditProfile, resetApp,
+    setChildrenCount, showChildCount, hideChildCount, nextStep, prevStep, startChat, openEditProfile, resetApp,
     sendMessage, handleKey, autoResize,
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
