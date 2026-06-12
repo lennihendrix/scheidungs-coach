@@ -399,12 +399,12 @@
   </div>
 </div>
 
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async () => {
+  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.sbClient.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sbClient = window.sbClient.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ── VERSION ──
   fetch('version.json').then(r => r.json()).then(d => {
@@ -412,7 +412,7 @@
   }).catch(() => {});
 
   // ── AUTH GUARD ──
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   if (!session) {
     window.location.href = 'login.html';
   } else {
@@ -425,7 +425,7 @@
   }
 
   window.handleLogout = async () => {
-    await supabase.auth.signOut();
+    await sbClient.auth.signOut();
     window.location.href = 'login.html';
   };
 
@@ -439,7 +439,7 @@
   }
 
   async function dbSession() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sbClient.auth.getSession();
     return session;
   }
 
@@ -531,7 +531,7 @@
     loadSuggestions();
   }
 
-  const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.supabase.co/functions/v1';
+  const FUNCTIONS_URL = 'https://faodupnfqvugeeftjfbi.sbClient.co/functions/v1';
   const TOTAL_STEPS = 5;
   let currentStep = 1;
   let profile = {};
@@ -734,7 +734,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
         const errMsg = errData?.error?.message || `HTTP ${res.status}`;
         if (res.status === 401) {
           addMessage('assistant', '🔐 Sitzung abgelaufen. Bitte neu einloggen.');
-          setTimeout(() => { supabase.auth.signOut(); window.location.href = 'login.html'; }, 2000);
+          setTimeout(() => { sbClient.auth.signOut(); window.location.href = 'login.html'; }, 2000);
         } else {
           addMessage('assistant', `Fehler: ${errMsg}`);
         }
@@ -787,7 +787,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
 
   function resetApp() {
     profile = {}; messages = []; currentStep = 1;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    sbClient.auth.getSession().then(({ data: { session } }) => {
       if (session) fetch(
         `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${session.user.id}`,
         { method: 'DELETE', headers: dbHeaders(session.access_token) }
@@ -812,6 +812,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved
   });
+})();
 </script>
 </body>
 </html>
