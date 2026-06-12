@@ -511,7 +511,8 @@
   if (!session) {
     window.location.href = 'login.html';
   } else {
-    const user = session.user;
+    const { data: { user: freshUser } } = await sbClient.auth.getUser();
+    const user = freshUser || session.user;
     const name = user.user_metadata?.full_name || user.email.split('@')[0];
     const badge = document.getElementById('user-badge');
     const daysSince = Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000);
@@ -529,20 +530,19 @@
 
   // ── TRIAL / SUBSCRIPTION CHECK ──
   async function checkAccess() {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (!session) return;
+    const { data: { user } } = await sbClient.auth.getUser(); // fresh from server
+    if (!user) return;
 
     // Handle Stripe success redirect
     if (new URLSearchParams(window.location.search).get('subscribed') === '1') {
       history.replaceState({}, '', window.location.pathname);
-      // Wait a moment for webhook to process, then recheck
       await new Promise(r => setTimeout(r, 2000));
     }
 
     // Check subscription table
     const { data: sub } = await sbClient.from('subscriptions')
       .select('status, current_period_end')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     if (sub?.status === 'active' && sub?.current_period_end) {
@@ -550,7 +550,7 @@
     }
 
     // Check 7-day trial
-    const createdAt = new Date(session.user.created_at);
+    const createdAt = new Date(user.created_at);
     const trialEnd = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
     if (new Date() <= trialEnd) return; // still in trial
 
