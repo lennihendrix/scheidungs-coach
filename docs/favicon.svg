@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5B6EE8"/>
+      <stop offset="1" stop-color="#3D52D5"/>
+    </linearGradient>
+    <linearGradient id="clover" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5DE89A"/>
+      <stop offset="1" stop-color="#16A34A"/>
+    </linearGradient>
+    <!-- Zackiger Riss: weißes Herz, schwarzer Zickzack wird ausgestanzt -->
+    <mask id="crack">
+      <rect x="0" y="0" width="512" height="512" fill="white"/>
+      <polyline points="256,104 232,168 274,206 238,260 258,338"
+        fill="none" stroke="black" stroke-width="15"
+        stroke-linejoin="round" stroke-linecap="round"/>
+    </mask>
+    <!-- ein Herz als Bauteil (24er-Raster, Spitze unten bei 12,21.35) -->
+    <path id="h" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+  </defs>
+
+  <!-- Hintergrund -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Gebrochenes Herz (weiß, mit ausgestanztem Riss) -->
+  <g mask="url(#crack)">
+    <g transform="translate(106,70) scale(12.5)">
+      <use href="#h" fill="#FFFFFF"/>
+    </g>
+  </g>
+
+  <!-- Vierblättriges Kleeblatt (unten rechts, überlappt das Herz) -->
+  <g transform="translate(372,366)">
+    <!-- Stiel -->
+    <path d="M2 6 C 6 34, 18 44, 30 52" fill="none" stroke="#16A34A" stroke-width="7" stroke-linecap="round"/>
+    <!-- 4 herzförmige Blätter, Spitzen zur Mitte -->
+    <g fill="url(#clover)" stroke="#0E7A38" stroke-width="0.6">
+      <use href="#h" transform="rotate(0)   scale(1.5) translate(-12,-21.35)"/>
+      <use href="#h" transform="rotate(90)  scale(1.5) translate(-12,-21.35)"/>
+      <use href="#h" transform="rotate(180) scale(1.5) translate(-12,-21.35)"/>
+      <use href="#h" transform="rotate(270) scale(1.5) translate(-12,-21.35)"/>
+    </g>
+  </g>
+</svg>
