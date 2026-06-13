@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User-Management – Scheidungsmentor</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --brand: #5B6EE8; --brand-dark: #3D52D5; --text: #1A1A2E; --text-muted: #6B7280; --border: #E5E7EB; --bg: #F9FAFB; --white: #FFF; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+  .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; }
+  .topbar h1 { font-size: 17px; font-weight: 700; color: var(--brand); }
+  .back { margin-left: auto; background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--text-muted); cursor: pointer; text-decoration: none; }
+  .back:hover { border-color: var(--brand); color: var(--brand); }
+  .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px 60px; }
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; flex: 1; min-width: 130px; }
+  .stat .num { font-size: 24px; font-weight: 800; color: var(--brand); }
+  .stat .lbl { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+  .table-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); background: #FAFBFF; position: sticky; top: 0; }
+  td.email { font-weight: 600; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFBFF; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+  .badge.active { background: #ECFDF5; color: #059669; }
+  .badge.trial { background: #FEF3C7; color: #D97706; }
+  .badge.expired, .badge.canceled, .badge.past_due { background: #FEE2E2; color: #DC2626; }
+  .num-cell { text-align: center; font-variant-numeric: tabular-nums; }
+  .actions { display: flex; gap: 6px; }
+  .btn-sm { font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--white); cursor: pointer; }
+  .btn-up { color: #059669; border-color: #A7F3D0; }
+  .btn-up:hover { background: #ECFDF5; }
+  .btn-del { color: #DC2626; border-color: #FECACA; }
+  .btn-del:hover { background: #FEE2E2; }
+  .btn-sm:disabled { opacity: .5; cursor: default; }
+  .msg { text-align: center; padding: 40px; color: var(--text-muted); }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>⚙️ User-Management</h1>
+  <a class="back" href="index.html">← Zurück zur App</a>
+</div>
+
+<div class="wrap">
+  <div class="stats" id="stats"></div>
+  <div class="table-card">
+    <table id="table">
+      <thead>
+        <tr>
+          <th>E-Mail</th>
+          <th>Registriert</th>
+          <th>Status</th>
+          <th class="num-cell">Nachr. gesamt</th>
+          <th class="num-cell">7 Tage</th>
+          <th class="num-cell">24 Std</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="7" class="msg">Lade Nutzer…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
+  const FUNCTIONS_URL = SUPABASE_URL + '/functions/v1';
+  const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let accessToken = null;
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '–';
+    return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  }
+
+  async function callAdmin(payload) {
+    const res = await fetch(`${FUNCTIONS_URL}/admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  function render(users) {
+    const tbody = document.getElementById('tbody');
+    if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" class="msg">Keine Nutzer.</td></tr>'; return; }
+
+    // Stats
+    const total = users.length;
+    const active = users.filter(u => u.membership === 'active').length;
+    const trial = users.filter(u => u.membership === 'trial').length;
+    const msgs = users.reduce((s, u) => s + u.msgTotal, 0);
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="num">${total}</div><div class="lbl">Nutzer</div></div>
+      <div class="stat"><div class="num">${active}</div><div class="lbl">Zahlend</div></div>
+      <div class="stat"><div class="num">${trial}</div><div class="lbl">Im Trial</div></div>
+      <div class="stat"><div class="num">${msgs}</div><div class="lbl">Nachrichten gesamt</div></div>`;
+
+    tbody.innerHTML = users.map(u => `
+      <tr data-id="${u.id}" data-email="${u.email}">
+        <td class="email" title="${u.email}">${u.email}</td>
+        <td>${fmtDate(u.created_at)}</td>
+        <td><span class="badge ${u.membership}">${({active:'Aktiv',trial:'Trial',expired:'Abgelaufen',canceled:'Gekündigt',past_due:'Zahlung offen'})[u.membership]||u.membership}</span></td>
+        <td class="num-cell">${u.msgTotal}</td>
+        <td class="num-cell">${u.msg7d}</td>
+        <td class="num-cell">${u.msg24h}</td>
+        <td>
+          <div class="actions">
+            <button class="btn-sm btn-up" ${u.membership==='active'?'disabled':''} onclick="upgrade('${u.id}','${u.email}')">⬆ Upgrade</button>
+            <button class="btn-sm btn-del" onclick="del('${u.id}','${u.email}')">🗑 Löschen</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function load() {
+    try {
+      const { users } = await callAdmin({ action: 'list' });
+      render(users);
+    } catch (e) {
+      document.getElementById('tbody').innerHTML = `<tr><td colspan="7" class="msg">Fehler: ${e.message}</td></tr>`;
+    }
+  }
+
+  window.upgrade = async (id, email) => {
+    if (!confirm(`${email} kostenlos auf die bezahlte Mitgliedschaft (1 Jahr) setzen?`)) return;
+    try { await callAdmin({ action: 'upgrade', user_id: id }); toast('Upgrade erfolgreich ✓'); load(); }
+    catch (e) { toast('Fehler: ' + e.message); }
+  };
+
+  window.del = async (id, email) => {
+    if (!confirm(`Account "${email}" UNWIDERRUFLICH löschen? Alle Daten (Chat, Profil, Abo) gehen verloren.`)) return;
+    try { await callAdmin({ action: 'delete', user_id: id }); toast('Account gelöscht ✓'); load(); }
+    catch (e) { toast('Fehler: ' + e.message); }
+  };
+
+  // Init: Session prüfen
+  (async () => {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; return; }
+    accessToken = session.access_token;
+    load();
+  })();
+</script>
+</body>
+</html>

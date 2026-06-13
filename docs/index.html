@@ -331,6 +331,7 @@
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <span id="user-badge" style="font-size:12px;color:var(--text-muted);display:none"></span>
+    <button class="header-reset" id="admin-btn" onclick="window.location.href='admin.html'" style="display:none">⚙️ <span class="btn-label-long">Admin</span></button>
     <button class="header-reset" id="profile-btn" onclick="openProfilePage()" style="display:none">👤 <span class="btn-label-long">Profil</span></button>
     <button class="header-reset" id="reset-btn" onclick="resetApp()"><span class="btn-label-long">Neu starten</span><span class="btn-label-short">↺</span></button>
     <button class="header-reset" id="logout-btn" onclick="handleLogout()" style="display:none"><span class="btn-label-long">Abmelden</span><span class="btn-label-short">↪</span></button>
@@ -599,6 +600,10 @@
     badge.style.display = 'inline';
     document.getElementById('logout-btn').style.display = 'block';
     document.getElementById('profile-btn').style.display = 'block';
+    // Admin-Button nur für Admin-User
+    if ((user.email || '').toLowerCase() === 'h.lennarz+test@gmail.com') {
+      document.getElementById('admin-btn').style.display = 'block';
+    }
   }
 
   window.handleLogout = async () => {
@@ -980,7 +985,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     document.getElementById('send-btn').disabled = true;
     isStreaming = true;
     addMessage('user', text);
-    messages.push({role:'user', content:text});
+    messages.push({role:'user', content:text, ts:new Date().toISOString()});
     addTyping();
 
     try {
@@ -1035,7 +1040,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
         }
       }
 
-      messages.push({role:'assistant', content:fullText});
+      messages.push({role:'assistant', content:fullText, ts:new Date().toISOString()});
       saveState();
       loadSuggestions();
     } catch(e) {
