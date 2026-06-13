@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: CORS });
   }
 
-  let body: unknown;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -20,6 +20,8 @@ Deno.serve(async (req) => {
     });
   }
 
+  const streaming = body.stream === true;
+
   const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -27,22 +29,24 @@ Deno.serve(async (req) => {
       'Content-Type': 'application/json',
       'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify({ ...(body as object), stream: true }),
+    body: JSON.stringify({ ...body, stream: streaming }),
   });
 
-  if (!anthropicRes.ok) {
-    const err = await anthropicRes.json().catch(() => ({}));
-    return new Response(JSON.stringify({ error: err }), {
+  if (!streaming) {
+    const data = await anthropicRes.json();
+    return new Response(JSON.stringify(data), {
       status: anthropicRes.status,
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 
   return new Response(anthropicRes.body, {
+    status: anthropicRes.status,
     headers: {
       ...CORS,
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
     },
   });
 });

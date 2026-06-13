@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Scheidungs-Coach</title>
+<title>Scheidungsmentor</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -326,7 +326,7 @@
 <div class="header">
   <div class="header-logo">⚖️</div>
   <div>
-    <div class="header-title">Scheidungs-Coach</div>
+    <div class="header-title">Scheidungsmentor</div>
     <div class="header-sub">24/7 für dich da &middot; <span id="version-label">v1.0</span></div>
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
@@ -476,7 +476,7 @@
       </div>
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="prevStep(7)">← Zurück</button>
-        <button class="btn btn-primary" id="next-8" onclick="startChat()" disabled>Zum Coach →</button>
+        <button class="btn btn-primary" id="next-8" onclick="startChat()" disabled>Zum Mentor →</button>
       </div>
     </div>
   </div>
@@ -488,7 +488,7 @@
   <div class="chat-messages" id="chat-messages">
     <div class="welcome-card">
       <div class="wc-emoji">👋</div>
-      <h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3>
+      <h3 id="welcome-title">Hallo! Ich bin dein Mentor.</h3>
       <p>Ich bin hier, um dir zuzuhören und zu helfen. Stell mir eine Frage oder wähle einen Vorschlag unten.</p>
     </div>
   </div>
@@ -507,7 +507,7 @@
 <!-- PROFIL -->
 <div id="screen-profile" class="screen">
   <div class="profile-page">
-    <button class="btn-back" onclick="closeProfilePage()">← Zurück zum Coach</button>
+    <button class="btn-back" onclick="closeProfilePage()">← Zurück zum Mentor</button>
 
     <div class="profile-section">
       <h3>Konto</h3>
@@ -726,7 +726,7 @@
     container.innerHTML = '';
     if (messages.length === 0) {
       const isF = profile.gender === 'female';
-      container.innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3>${isF?'Hallo! Ich bin deine Coachin.':'Hallo! Ich bin dein Coach.'}</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
+      container.innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3>${isF?'Hallo! Ich bin deine Mentorin.':'Hallo! Ich bin dein Mentor.'}</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
     } else {
       // Show last 30 messages visually (performance)
       messages.slice(-30).forEach(m => addMessage(m.role, m.content));
@@ -822,13 +822,13 @@
     ].filter(Boolean).join('');
 
     const isF = profile.gender === 'female';
-    const wt = document.getElementById('welcome-title'); if (wt) wt.textContent = isF ? 'Hallo! Ich bin deine Coachin.' : 'Hallo! Ich bin dein Coach.';
+    const wt = document.getElementById('welcome-title'); if (wt) wt.textContent = isF ? 'Hallo! Ich bin deine Mentorin.' : 'Hallo! Ich bin dein Mentor.';
 
     document.getElementById('screen-onboarding').classList.remove('active');
     document.getElementById('screen-chat').classList.add('active');
     document.getElementById('reset-btn').style.display = 'block';
     document.getElementById('profile-btn').style.display = 'block';
-    const _sb = document.getElementById('next-8'); if (_sb) _sb.textContent = 'Zum Coach →';
+    const _sb = document.getElementById('next-8'); if (_sb) _sb.textContent = 'Zum Mentor →';
 
     if (isEditing) {
       isEditing = false;
@@ -853,7 +853,7 @@
     const propertyMap = {house:'Immobilie vorhanden (Haus/Wohnung)',other:'Gemeinsame Konten/Sonstiges',no:'Kein gemeinsames Eigentum'};
     const property = profile.property ? `- Gemeinsames Eigentum: ${propertyMap[profile.property]}` : '';
 
-    return `Du bist ein einfühlsamer, professioneller Scheidungs-Coach. Du hilfst Menschen dabei, die emotionalen, praktischen und rechtlichen Herausforderungen einer Trennung oder Scheidung zu bewältigen.
+    return `Du bist ein einfühlsamer, professioneller Scheidungsmentor. Du hilfst Menschen dabei, die emotionalen, praktischen und rechtlichen Herausforderungen einer Trennung oder Scheidung zu bewältigen.
 
 Über den Nutzer:
 - Geschlecht: ${gender}
@@ -899,7 +899,7 @@ Wichtig: Du bist kein Anwalt und kein Therapeut. Bei ernsten psychischen Krisen 
       const res = await callAnthropic({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 400,
-        messages: [{role:'user', content:`Du hilfst einem ${gender} in der ${status} ${children}. Generiere 5 kurze Fragen (max. 8 Wörter), die diese Person ihrem Scheidungs-Coach stellen würde — also Nachrichten, die der User in das Chat-Eingabefeld tippt, z.B. "Was passiert beim Trennungsjahr?" oder "Wie berechne ich meinen Unterhalt?".
+        messages: [{role:'user', content:`Du hilfst einem ${gender} in der ${status} ${children}. Generiere 5 kurze Fragen (max. 8 Wörter), die diese Person ihrem Scheidungsmentor stellen würde — also Nachrichten, die der User in das Chat-Eingabefeld tippt, z.B. "Was passiert beim Trennungsjahr?" oder "Wie berechne ich meinen Unterhalt?".
 
 Bisheriger Chatverlauf:
 ${recent||'(noch kein Chat)'}
@@ -1030,13 +1030,13 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
     document.getElementById('profile-btn').style.display = 'none';
-    document.getElementById('chat-messages').innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3 id="welcome-title">Hallo! Ich bin dein Coach.</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
+    document.getElementById('chat-messages').innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3 id="welcome-title">Hallo! Ich bin dein Mentor.</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
     document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
     document.getElementById('step-1').classList.add('active');
     document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
     document.querySelectorAll('.btn-primary[id^="next"]').forEach(b=>b.disabled=true);
     document.getElementById('next-8').disabled = true;
-    const _sb = document.getElementById('next-8'); if (_sb) _sb.textContent = 'Zum Coach →';
+    const _sb = document.getElementById('next-8'); if (_sb) _sb.textContent = 'Zum Mentor →';
     document.getElementById('children-count-wrap').classList.remove('visible');
     renderStepIndicator();
   }
@@ -1096,7 +1096,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
         document.getElementById('pp-cancel-section').style.display = 'none';
         document.getElementById('pp-membership').innerHTML = '<span class="membership-badge trial">🔄 Gekündigt</span>';
       } else {
-        alert('Fehler beim Kündigen. Bitte kontaktiere uns unter support@scheidungs-coach.de');
+        alert('Fehler beim Kündigen. Bitte kontaktiere uns unter support@scheidungsmentor.de');
       }
     } catch(e) {
       alert('Fehler beim Kündigen. Bitte versuche es später erneut.');
