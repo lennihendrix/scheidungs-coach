@@ -52,8 +52,8 @@ Deno.serve(async (req) => {
       },
       quantity: 1,
     }],
-    success_url: 'https://scheidungsmentor.de/index.html?subscribed=1',
-    cancel_url: 'https://scheidungsmentor.de/index.html',
+    success_url: 'https://www.scheidungsmentor.de/index.html?subscribed=1',
+    cancel_url: 'https://www.scheidungsmentor.de/index.html',
     locale: 'de',
   });
 
