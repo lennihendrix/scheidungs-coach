@@ -10,6 +10,6 @@ const next = `${major}.${minor}.${patch + 1}`;
 writeFileSync(versionFile, `{ "version": "${next}" }\n`);
 console.log(`🔖 Version bumped: ${current} → ${next}`);
 
-execSync(`git add ${versionFile}`, { stdio: 'inherit' });
-execSync(`git commit -m "chore: bump version to ${next}"`, { stdio: 'inherit' });
+execSync(`git add docs/`, { stdio: 'inherit' });
+execSync(`git commit -m "v${next}"`, { stdio: 'inherit' });
 execSync('git push', { stdio: 'inherit' });
