@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passwort zurücksetzen – Scheidungsmentor</title>
+<link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<div class="auth-card">
+  <div class="auth-logo">
+    <div class="logo-icon">⚖️</div>
+    <h1>Scheidungsmentor</h1>
+    <p>24/7 für dich da</p>
+  </div>
+
+  <div class="auth-title">Neues Passwort setzen</div>
+  <div class="auth-sub">Wähle ein neues Passwort für dein Konto.</div>
+
+  <div class="alert" id="alert"></div>
+
+  <form id="reset-form" onsubmit="handleReset(event)" style="display:none">
+    <div class="form-group">
+      <label class="form-label" for="password">Neues Passwort</label>
+      <div class="input-wrap">
+        <input class="form-input" id="password" type="password" placeholder="••••••••" required autocomplete="new-password" minlength="6" />
+        <button type="button" class="toggle-pw" onclick="togglePw('password', this)">👁️</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="password2">Passwort wiederholen</label>
+      <div class="input-wrap">
+        <input class="form-input" id="password2" type="password" placeholder="••••••••" required autocomplete="new-password" minlength="6" />
+        <button type="button" class="toggle-pw" onclick="togglePw('password2', this)">👁️</button>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="submit-btn" type="submit">Passwort speichern</button>
+  </form>
+
+  <div class="auth-switch">
+    <a href="login.html">Zurück zum Login</a>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://faodupnfqvugeeftjfbi.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const alert = document.getElementById('alert');
+  const form = document.getElementById('reset-form');
+
+  // Supabase setzt nach Klick auf den Reset-Link eine Recovery-Session.
+  // Wir warten auf das PASSWORD_RECOVERY-Event bzw. prüfen die Session.
+  let canReset = false;
+
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      canReset = true;
+      form.style.display = 'block';
+    }
+  });
+
+  // Fallback: falls das Event schon durch war, Session direkt prüfen
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    canReset = true;
+    form.style.display = 'block';
+  } else {
+    setTimeout(async () => {
+      if (!canReset) {
+        const { data: { session: s2 } } = await supabase.auth.getSession();
+        if (s2) { canReset = true; form.style.display = 'block'; }
+        else {
+          alert.textContent = 'Dieser Link ist ungültig oder abgelaufen. Bitte fordere auf der Login-Seite einen neuen an.';
+          alert.className = 'alert error';
+        }
+      }
+    }, 1500);
+  }
+
+  window.togglePw = (id, btn) => {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? '👁️' : '🙈';
+  };
+
+  window.handleReset = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    alert.className = 'alert';
+    const pw = document.getElementById('password').value;
+    const pw2 = document.getElementById('password2').value;
+    if (pw !== pw2) {
+      alert.textContent = 'Die Passwörter stimmen nicht überein.';
+      alert.className = 'alert error';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Speichern…';
+
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    if (error) {
+      alert.textContent = 'Fehler: ' + error.message;
+      alert.className = 'alert error';
+      btn.disabled = false;
+      btn.textContent = 'Passwort speichern';
+    } else {
+      form.style.display = 'none';
+      alert.textContent = 'Passwort geändert! Du wirst zur App weitergeleitet…';
+      alert.className = 'alert success';
+      setTimeout(() => window.location.href = 'index.html', 1800);
+    }
+  };
+</script>
+</body>
+</html>

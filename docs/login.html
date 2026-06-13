@@ -35,6 +35,10 @@
     <button class="btn btn-primary" id="submit-btn" type="submit">Anmelden</button>
   </form>
 
+  <div class="auth-switch" style="margin-top:14px">
+    <a href="#" id="forgot-link" onclick="handleForgot(event)">Passwort vergessen?</a>
+  </div>
+
   <div class="auth-switch">
     Noch kein Account? <a href="signup.html">Jetzt registrieren</a>
   </div>
@@ -55,6 +59,27 @@
     const input = document.getElementById(id);
     input.type = input.type === 'password' ? 'text' : 'password';
     btn.textContent = input.type === 'password' ? '👁️' : '🙈';
+  };
+
+  window.handleForgot = async (e) => {
+    e.preventDefault();
+    const alert = document.getElementById('alert');
+    const email = document.getElementById('email').value.trim();
+    if (!email) {
+      alert.textContent = 'Bitte trage zuerst deine E-Mail-Adresse oben ein, dann klicke erneut auf „Passwort vergessen?".';
+      alert.className = 'alert error';
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://www.scheidungsmentor.de/reset.html',
+    });
+    if (error) {
+      alert.textContent = 'Fehler: ' + error.message;
+      alert.className = 'alert error';
+    } else {
+      alert.textContent = 'Wir haben dir eine E-Mail zum Zurücksetzen geschickt. Schau in deinen Posteingang (auch Spam).';
+      alert.className = 'alert success';
+    }
   };
 
   window.handleLogin = async (e) => {
