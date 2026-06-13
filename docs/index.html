@@ -683,6 +683,7 @@
         user_id: session.user.id,
         profile: profile,
         messages: messages.slice(-60),
+        message_count: totalMsgCount,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
       if (error) console.error('saveState error:', error);
@@ -695,7 +696,7 @@
       const { data: { session } } = await sbClient.auth.getSession();
       if (!session) return false;
       const { data, error } = await sbClient.from('chat_sessions')
-        .select('profile, messages')
+        .select('profile, messages, message_count')
         .eq('user_id', session.user.id)
         .limit(1)
         .maybeSingle();
@@ -703,6 +704,7 @@
       if (data.profile && Object.keys(data.profile).length > 0) {
         profile = data.profile;
         messages = Array.isArray(data.messages) ? data.messages : [];
+        totalMsgCount = (typeof data.message_count === 'number') ? data.message_count : messages.length;
         renderChatFromSaved();
         return true;
       }
@@ -752,6 +754,7 @@
   let currentStep = 1;
   let profile = {};
   let messages = [];
+  let totalMsgCount = 0;
   let isStreaming = false;
   let isEditing = false;
 
@@ -986,6 +989,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     isStreaming = true;
     addMessage('user', text);
     messages.push({role:'user', content:text, ts:new Date().toISOString()});
+    totalMsgCount++;
     addTyping();
 
     try {
@@ -1041,6 +1045,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
       }
 
       messages.push({role:'assistant', content:fullText, ts:new Date().toISOString()});
+      totalMsgCount++;
       saveState();
       loadSuggestions();
     } catch(e) {
@@ -1056,7 +1061,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
   function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
 
   function resetApp() {
-    profile = {}; messages = []; currentStep = 1; isEditing = false;
+    profile = {}; messages = []; totalMsgCount = 0; currentStep = 1; isEditing = false;
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
