@@ -1168,13 +1168,14 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     document.getElementById('pp-email').textContent = user.email;
     document.getElementById('pp-since').textContent = new Date(user.created_at).toLocaleDateString('de-DE', { day:'2-digit', month:'long', year:'numeric' });
     // Mitgliedschaft
-    const { data: sub } = await sbClient.from('subscriptions').select('status,current_period_end').eq('user_id', user.id).maybeSingle();
+    const { data: sub } = await sbClient.from('subscriptions').select('status,current_period_end,plan').eq('user_id', user.id).maybeSingle();
     const daysSince = Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000);
     const trialLeft = Math.max(0, 7 - daysSince);
     const ppMem = document.getElementById('pp-membership');
     const isActive = sub?.status === 'active' && sub?.current_period_end && new Date(sub.current_period_end) > new Date();
+    const planName = sub?.plan === 'intensiv' ? 'Mentor Intensiv' : sub?.plan === 'easy' ? 'Mentor Easy' : 'Mitglied';
     if (isActive) {
-      ppMem.innerHTML = '<span class="membership-badge">✅ Aktiv</span>';
+      ppMem.innerHTML = `<span class="membership-badge">✅ ${planName}</span>`;
       document.getElementById('pp-period-row').style.display = 'flex';
       document.getElementById('pp-period').textContent = new Date(sub.current_period_end).toLocaleDateString('de-DE', { day:'2-digit', month:'long', year:'numeric' });
       document.getElementById('pp-cancel-section').style.display = 'block';
