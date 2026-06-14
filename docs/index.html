@@ -91,6 +91,15 @@
   .btn-paywall:hover { background: var(--brand-dark); transform: translateY(-1px); }
   .btn-paywall:disabled { opacity: 0.6; cursor: default; transform: none; }
   .paywall-sub { margin-top: 12px; font-size: 12px; color: var(--text-muted); }
+  .paywall-plans { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+  .paywall-plan { border: 1.5px solid var(--border); border-radius: 14px; padding: 14px; text-align: left; }
+  .paywall-plan.featured { border-color: var(--brand); background: var(--brand-light); }
+  .pp-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  .pp-name { font-size: 15px; font-weight: 800; color: var(--text); }
+  .pp-price { font-size: 18px; font-weight: 900; color: var(--brand); }
+  .pp-price small { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+  .pp-feat { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px; }
+  .paywall-plan .btn-paywall { padding: 11px; font-size: 15px; }
 
   /* ── PROFIL PAGE ── */
   #screen-profile { padding: 0; overflow-y: auto; }
@@ -562,13 +571,20 @@
   <div class="paywall-card">
     <div class="paywall-emoji">⚖️</div>
     <h2>Dein Testzeitraum ist abgelaufen</h2>
-    <p>Du hast 7 Tage lang unbegrenzt Unterstützung erhalten. Mach weiter — du bist nicht allein.</p>
-    <div class="paywall-price">
-      <div class="amount">19 €</div>
-      <div class="period">pro Monat · jederzeit kündbar</div>
+    <p>Du hast 7 Tage lang Unterstützung erhalten. Wähle einen Tarif, um weiterzumachen — du bist nicht allein.</p>
+    <div class="paywall-plans">
+      <div class="paywall-plan">
+        <div class="pp-head"><span class="pp-name">Mentor Easy</span><span class="pp-price">19,90 €<small>/Monat</small></span></div>
+        <div class="pp-feat">150 Nachrichten / Monat · Vollständiges Gedächtnis</div>
+        <button class="btn-paywall" id="paywall-btn-easy" onclick="startCheckout('easy')">Easy wählen →</button>
+      </div>
+      <div class="paywall-plan featured">
+        <div class="pp-head"><span class="pp-name">Mentor Intensiv</span><span class="pp-price">49,90 €<small>/Monat</small></span></div>
+        <div class="pp-feat">Unbegrenzte Nachrichten · Gedächtnis · Dokumenten-Upload</div>
+        <button class="btn-paywall" id="paywall-btn-intensiv" onclick="startCheckout('intensiv')">Intensiv wählen →</button>
+      </div>
     </div>
-    <button class="btn-paywall" id="paywall-btn" onclick="startCheckout()">Jetzt weitermachen →</button>
-    <p class="paywall-sub">Keine versteckten Kosten · Sofort aktiv · Sichere Zahlung via Stripe</p>
+    <p class="paywall-sub">Jederzeit kündbar · Sofort aktiv · Sichere Zahlung via Stripe</p>
   </div>
 </div>
 
@@ -658,25 +674,36 @@
     document.getElementById('screen-onboarding').classList.add('paywall-blur');
   }
 
-  async function startCheckout() {
-    const btn = document.getElementById('paywall-btn');
-    btn.disabled = true;
-    btn.textContent = 'Weiterleitung…';
+  async function startCheckout(plan) {
+    const tier = (plan === 'intensiv') ? 'intensiv' : 'easy';
+    const btns = document.querySelectorAll('.btn-paywall');
+    btns.forEach(b => { b.disabled = true; });
+    const clicked = document.getElementById(tier === 'intensiv' ? 'paywall-btn-intensiv' : 'paywall-btn-easy');
+    const prevText = clicked ? clicked.textContent : '';
+    if (clicked) clicked.textContent = 'Weiterleitung…';
     try {
       const { data: { session } } = await sbClient.auth.getSession();
       const res = await fetch(`${FUNCTIONS_URL}/create-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ plan: tier }),
       });
       const { url } = await res.json();
       window.location.href = url;
     } catch (e) {
-      btn.disabled = false;
-      btn.textContent = 'Jetzt weitermachen →';
+      btns.forEach(b => { b.disabled = false; });
+      if (clicked) clicked.textContent = prevText;
       alert('Fehler: ' + e.message);
     }
   }
   window.startCheckout = startCheckout;
+
+  // Direkt-Checkout von der Landingpage (?checkout=easy|intensiv)
+  const checkoutParam = new URLSearchParams(window.location.search).get('checkout');
+  if (checkoutParam === 'easy' || checkoutParam === 'intensiv') {
+    history.replaceState({}, '', window.location.pathname);
+    startCheckout(checkoutParam);
+  }
 
   // Run access check after state is restored
   setTimeout(checkAccess, 1500);

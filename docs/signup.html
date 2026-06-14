@@ -65,9 +65,14 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhb2R1cG5mcXZ1Z2VlZnRqZmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4OTM4OTEsImV4cCI6MjA5MjQ2OTg5MX0.Al25wuVNxIDcyZSiLcbQKvrqr2itH-hasET2Rg2uf8w';
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Already logged in? Redirect to app
+  // Gewählter Tarif von der Landingpage (?plan=easy|intensiv)
+  const planParam = new URLSearchParams(window.location.search).get('plan');
+  const nextUrl = (planParam === 'easy' || planParam === 'intensiv')
+    ? `index.html?checkout=${planParam}` : 'index.html';
+
+  // Already logged in? Redirect to app (ggf. direkt zum Checkout)
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) window.location.href = 'index.html';
+  if (session) window.location.href = nextUrl;
 
   window.togglePw = (id, btn) => {
     const input = document.getElementById(id);
@@ -112,9 +117,9 @@
       return;
     }
 
-    // If session exists → auto-confirm is on → go straight to app
+    // If session exists → auto-confirm is on → go straight to app (ggf. Checkout)
     if (data.session) {
-      window.location.href = 'index.html';
+      window.location.href = nextUrl;
       return;
     }
 

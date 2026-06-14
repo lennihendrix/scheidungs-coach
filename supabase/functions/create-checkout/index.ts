@@ -11,6 +11,15 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return new Response('Unauthorized', { status: 401, headers: CORS });
 
+  // Tarif bestimmen
+  const reqBody = await req.json().catch(() => ({}));
+  const plan = reqBody.plan === 'intensiv' ? 'intensiv' : 'easy';
+  const PLANS: Record<string, { amount: number; name: string; desc: string }> = {
+    easy: { amount: 1990, name: 'Mentor Easy', desc: '150 Nachrichten pro Monat · Vollständiges Gedächtnis' },
+    intensiv: { amount: 4990, name: 'Mentor Intensiv', desc: 'Unbegrenzte Nachrichten · Vollständiges Gedächtnis · Dokumenten-Upload' },
+  };
+  const tier = PLANS[plan];
+
   // Get user from JWT
   const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { 'Authorization': authHeader, 'apikey': SUPABASE_SERVICE_KEY },
@@ -44,14 +53,16 @@ Deno.serve(async (req) => {
       price_data: {
         currency: 'eur',
         product_data: {
-          name: 'Scheidungsmentor – Monatliches Abo',
-          description: 'Unbegrenzter Zugang zu deinem persönlichen Mentor',
+          name: `Scheidungsmentor – ${tier.name}`,
+          description: tier.desc,
         },
-        unit_amount: 1900,
+        unit_amount: tier.amount,
         recurring: { interval: 'month' },
       },
       quantity: 1,
     }],
+    metadata: { plan },
+    subscription_data: { metadata: { plan, user_id: userId } },
     success_url: 'https://www.scheidungsmentor.de/index.html?subscribed=1',
     cancel_url: 'https://www.scheidungsmentor.de/index.html',
     locale: 'de',

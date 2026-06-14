@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
       stripe_customer_id: session.customer as string,
       stripe_subscription_id: subscriptionId,
       status: 'active',
+      plan: session.metadata?.plan || sub.metadata?.plan || null,
       current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
     });
   }
@@ -56,6 +57,7 @@ Deno.serve(async (req) => {
         stripe_customer_id: invoice.customer as string,
         stripe_subscription_id: subscriptionId,
         status: 'active',
+        plan: sub.metadata?.plan || null,
         current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
       });
     }
