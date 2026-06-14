@@ -514,6 +514,74 @@
   </div>
 </section>
 
+<!-- PRICING -->
+<style>
+  .pricing { padding: 80px 24px; background: var(--bg); }
+  .pricing-inner { max-width: 920px; margin: 0 auto; }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 44px; align-items: stretch; }
+  .price-card { background: var(--white); border: 1px solid var(--border); border-radius: 18px; padding: 28px 22px; display: flex; flex-direction: column; position: relative; }
+  .price-card.featured { border: 2px solid var(--brand); box-shadow: 0 8px 30px rgba(91,110,232,0.15); }
+  .price-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--brand); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .4px; padding: 5px 12px; border-radius: 20px; white-space: nowrap; }
+  .price-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+  .price-amount { font-size: 34px; font-weight: 900; color: var(--text); line-height: 1; }
+  .price-period { font-size: 13px; color: var(--text-muted); margin-top: 4px; margin-bottom: 20px; }
+  .price-features { list-style: none; padding: 0; margin: 0 0 24px; flex: 1; }
+  .price-features li { font-size: 14px; color: #374151; padding: 7px 0 7px 24px; position: relative; }
+  .price-features li::before { content: '✓'; position: absolute; left: 0; color: var(--brand); font-weight: 800; }
+  .price-cta { display: block; text-align: center; padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 700; text-decoration: none; transition: all .2s; }
+  .price-cta.primary { background: var(--brand); color: #fff; }
+  .price-cta.primary:hover { background: var(--brand-dark); }
+  .price-cta.ghost { background: transparent; color: var(--brand); border: 1.5px solid var(--border); }
+  .price-cta.ghost:hover { border-color: var(--brand); }
+  .pricing-note { text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 28px; }
+  @media (max-width: 720px) { .pricing-grid { grid-template-columns: 1fr; max-width: 380px; margin-left: auto; margin-right: auto; } }
+</style>
+<section class="pricing" id="preise">
+  <div class="pricing-inner">
+    <div class="section-eyebrow">Preise</div>
+    <h2 class="section-title">Fair und transparent.</h2>
+    <p class="section-sub">Starte kostenlos. Wechsle oder kündige jederzeit.</p>
+    <div class="pricing-grid">
+
+      <div class="price-card">
+        <div class="price-name">7-Tage-Trial</div>
+        <div class="price-amount">0 €</div>
+        <div class="price-period">kostenlos</div>
+        <ul class="price-features">
+          <li>7 Tage voller Zugang</li>
+          <li>Vollständiges Gedächtnis</li>
+        </ul>
+        <a class="price-cta ghost" href="signup.html">Kostenlos starten</a>
+      </div>
+
+      <div class="price-card featured">
+        <div class="price-badge">Beliebteste Wahl</div>
+        <div class="price-name">Mentor Easy</div>
+        <div class="price-amount">19,90 €</div>
+        <div class="price-period">pro Monat</div>
+        <ul class="price-features">
+          <li>150 Nachrichten / Monat</li>
+          <li>Vollständiges Gedächtnis</li>
+        </ul>
+        <a class="price-cta primary" href="signup.html">Jetzt starten</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-name">Mentor Intensiv</div>
+        <div class="price-amount">49,90 €</div>
+        <div class="price-period">pro Monat</div>
+        <ul class="price-features">
+          <li>Unbegrenzte Nachrichten</li>
+          <li>Vollständiges Gedächtnis</li>
+        </ul>
+        <a class="price-cta ghost" href="signup.html">Jetzt starten</a>
+      </div>
+
+    </div>
+    <p class="pricing-note">Jederzeit kündbar · Keine Kreditkarte für den Trial</p>
+  </div>
+</section>
+
 <!-- TRUTH -->
 <section class="truth">
   <div class="truth-inner">
