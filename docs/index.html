@@ -691,10 +691,47 @@
         profile: profile,
         messages: messages.slice(-60),
         message_count: totalMsgCount,
+        memory_summary: memorySummary || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
       if (error) console.error('saveState error:', error);
     } catch (e) { console.error('saveState failed:', e); }
+  }
+
+  // ── GEDÄCHTNIS: ältere Nachrichten zusammenfassen, sobald der Verlauf wächst ──
+  // Hält die letzten 60 Nachrichten roh, alles davor wandert in eine kompakte Gedächtnis-Notiz.
+  let isSummarizing = false;
+  async function maybeSummarize() {
+    if (isSummarizing) return;
+    if (messages.length < 80) return; // erst zusammenfassen, wenn deutlich über dem 60er-Fenster
+    isSummarizing = true;
+    try {
+      const overflow = messages.slice(0, messages.length - 60); // älteste, die rausfallen würden
+      const transcript = overflow.map(m => `${m.role === 'user' ? 'Nutzer' : 'Mentor'}: ${m.content}`).join('\n');
+      const sys = `Du pflegst das Langzeitgedächtnis eines Scheidungsmentors über einen Nutzer. Verdichte die bestehende Gedächtnis-Notiz und die neuen Gesprächsausschnitte zu EINER einzigen, kompakten Notiz in Stichpunkten. Behalte ALLE dauerhaft relevanten Fakten lückenlos: Namen (Nutzer, Ex, Kinder), Daten, Verfahrensstand, finanzielle Details, getroffene Entscheidungen, wiederkehrende Gefühle/Sorgen, offene Themen und Zusagen. Lass Smalltalk und Wiederholungen weg. Erfinde nichts. Antworte nur mit der aktualisierten Notiz, ohne Vorrede.`;
+      const userMsg = `BESTEHENDE GEDÄCHTNIS-NOTIZ:\n${memorySummary || '(noch keine)'}\n\nNEUE GESPRÄCHSAUSSCHNITTE:\n${transcript}`;
+      const res = await fetch(`${FUNCTIONS_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1500,
+          system: sys,
+          messages: [{ role: 'user', content: userMsg }],
+        }),
+      });
+      const data = await res.json();
+      const text = data?.content?.[0]?.text?.trim();
+      if (text) {
+        memorySummary = text;
+        messages = messages.slice(-60); // ältere roh verwerfen — sind jetzt in der Notiz
+        saveState();
+      }
+    } catch (e) {
+      console.error('summarize failed:', e);
+    } finally {
+      isSummarizing = false;
+    }
   }
 
   // ── RESTORE: load saved state from chat_sessions table ──
@@ -703,7 +740,7 @@
       const { data: { session } } = await sbClient.auth.getSession();
       if (!session) return false;
       const { data, error } = await sbClient.from('chat_sessions')
-        .select('profile, messages, message_count')
+        .select('profile, messages, message_count, memory_summary')
         .eq('user_id', session.user.id)
         .limit(1)
         .maybeSingle();
@@ -712,6 +749,7 @@
         profile = data.profile;
         messages = Array.isArray(data.messages) ? data.messages : [];
         totalMsgCount = (typeof data.message_count === 'number') ? data.message_count : messages.length;
+        memorySummary = data.memory_summary || '';
         renderChatFromSaved();
         return true;
       }
@@ -762,6 +800,7 @@
   let profile = {};
   let messages = [];
   let totalMsgCount = 0;
+  let memorySummary = '';
   let isStreaming = false;
   let isEditing = false;
 
@@ -867,6 +906,7 @@
     const exComm = profile.exComm ? `- Kommunikation mit Ex: ${exCommMap[profile.exComm]}` : '';
     const propertyMap = {house:'Immobilie vorhanden (Haus/Wohnung)',other:'Gemeinsame Konten/Sonstiges',no:'Kein gemeinsames Eigentum'};
     const property = profile.property ? `- Gemeinsames Eigentum: ${propertyMap[profile.property]}` : '';
+    const memoryBlock = memorySummary ? `\n# GEDÄCHTNIS AUS FRÜHEREN GESPRÄCHEN (verbindlich, niemals vergessen)\n${memorySummary}\n` : '';
 
     return `# ROLLE & MISSION
 Du bist ein hochkompetenter, zutiefst empathischer und psychologisch geschulter Mentor für Menschen in Trennungs- und Scheidungsphase. Deine Mission ist es, den Nutzern als emotionaler Anker, strukturierter Begleiter und Deeskalations-Trainer zur Seite zu stehen. Du hilfst ihnen, den emotionalen Nebel zu lichten, sachliche Entscheidungen zu treffen und die Krise als Chance für einen Neuanfang zu sehen.
@@ -880,7 +920,7 @@ ${property}
 ${lawyer}
 ${concerns}
 Beziehe diese Angaben in deine Antworten ein, ohne sie mechanisch aufzuzählen.
-
+${memoryBlock}
 # PERSÖNLICHKEIT & TONFALL
 - Empathisch und validierend: Nimm die Gefühle des Nutzers (Trauer, Wut, Angst) ernst. Spiegle sie, bevor du lösungsorientiert wirst.
 - Ruhig und deeskalierend: Du verfällst niemals in Panik oder Partei-Ergreifung. Du bist die "Stimme der Vernunft" im Raum.
@@ -1063,6 +1103,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
       totalMsgCount++;
       saveState();
       loadSuggestions();
+      maybeSummarize();
     } catch(e) {
       removeTyping();
       addMessage('assistant', `Fehler: ${e.message}`);
@@ -1076,7 +1117,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
   function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
 
   function resetApp() {
-    profile = {}; messages = []; totalMsgCount = 0; currentStep = 1; isEditing = false;
+    profile = {}; messages = []; totalMsgCount = 0; memorySummary = ''; currentStep = 1; isEditing = false;
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
