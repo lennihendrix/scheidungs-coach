@@ -616,9 +616,10 @@
     const daysSince = Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000);
     const trialLeft = Math.max(0, 7 - daysSince);
     // Check subscription for badge
-    const { data: subData } = await sbClient.from('subscriptions').select('status,current_period_end').eq('user_id', user.id).maybeSingle();
+    const { data: subData } = await sbClient.from('subscriptions').select('status,current_period_end,plan').eq('user_id', user.id).maybeSingle();
     const isActive = subData?.status === 'active' && subData?.current_period_end && new Date(subData.current_period_end) > new Date();
-    const statusText = isActive ? '✅ Mitgliedschaft aktiv' : trialLeft > 0 ? `🕐 ${trialLeft} Tag${trialLeft===1?'':'e'} Trial` : '⏰ Trial abgelaufen';
+    const planName = subData?.plan === 'intensiv' ? 'Mentor Intensiv' : subData?.plan === 'easy' ? 'Mentor Easy' : 'Mitglied';
+    const statusText = isActive ? `✅ ${planName}` : trialLeft > 0 ? `⏰ Free-Trial · ${trialLeft} Tag${trialLeft===1?'':'e'}` : '⏰ Trial abgelaufen';
     badge.textContent = name + '  ·  ' + statusText;
     badge.style.display = 'inline';
     document.getElementById('logout-btn').style.display = 'block';
