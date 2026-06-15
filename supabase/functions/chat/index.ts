@@ -51,9 +51,17 @@ Deno.serve(async (req) => {
       contents,
       generationConfig: {
         // großzügiges Limit + Thinking aus, damit die Antwort nicht abgeschnitten wird
-        maxOutputTokens: Math.max((body.max_tokens as number) || 1024, 2048),
+        maxOutputTokens: Math.max((body.max_tokens as number) || 1024, 8192),
         thinkingConfig: { thinkingBudget: 0 },
       },
+      // Sicherheitsfilter aus — sonst bricht Gemini bei sensiblen Trennungs-/Krisenthemen
+      // mitten in der Antwort ab. Die Krisen-Logik steckt in unserem System-Prompt.
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      ],
     };
     if (body.system) geminiBody.system_instruction = { parts: [{ text: body.system as string }] };
 
