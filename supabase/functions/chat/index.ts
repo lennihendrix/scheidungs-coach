@@ -49,7 +49,11 @@ Deno.serve(async (req) => {
     }));
     const geminiBody: Record<string, unknown> = {
       contents,
-      generationConfig: { maxOutputTokens: (body.max_tokens as number) || 1024 },
+      generationConfig: {
+        // großzügiges Limit + Thinking aus, damit die Antwort nicht abgeschnitten wird
+        maxOutputTokens: Math.max((body.max_tokens as number) || 1024, 2048),
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     };
     if (body.system) geminiBody.system_instruction = { parts: [{ text: body.system as string }] };
 
@@ -59,7 +63,9 @@ Deno.serve(async (req) => {
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) },
       );
       const data = await gRes.json();
-      const text = (data?.candidates?.[0]?.content?.parts || []).map((p: { text?: string }) => p.text || '').join('');
+      const text = (data?.candidates?.[0]?.content?.parts || [])
+        .filter((p: { thought?: boolean }) => !p.thought)
+        .map((p: { text?: string }) => p.text || '').join('');
       // Antwort im Anthropic-Format zurückgeben, damit der Client unverändert bleibt
       return new Response(JSON.stringify({ content: [{ type: 'text', text }] }), {
         status: gRes.ok ? 200 : gRes.status,
@@ -95,7 +101,9 @@ Deno.serve(async (req) => {
           try {
             const j = JSON.parse(payload);
             const parts = j?.candidates?.[0]?.content?.parts || [];
-            const text = parts.map((p: { text?: string }) => p.text || '').join('');
+            const text = parts
+              .filter((p: { thought?: boolean }) => !p.thought)
+              .map((p: { text?: string }) => p.text || '').join('');
             if (text) {
               controller.enqueue(encoder.encode(
                 `data: ${JSON.stringify({ type: 'content_block_delta', delta: { type: 'text_delta', text } })}\n\n`,
