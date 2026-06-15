@@ -39,6 +39,14 @@
   .msg { text-align: center; padding: 40px; color: var(--text-muted); }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 100; }
   .toast.show { opacity: 1; }
+  .llm-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .llm-title { font-size: 14px; font-weight: 700; color: var(--text); }
+  .llm-current { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .llm-toggle { display: flex; gap: 8px; }
+  .llm-btn { font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--white); color: var(--text-muted); cursor: pointer; transition: all .15s; }
+  .llm-btn:hover { border-color: var(--brand); }
+  .llm-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .llm-btn:disabled { opacity: .6; cursor: default; }
 </style>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -57,6 +65,16 @@
 </div>
 
 <div class="wrap">
+  <div class="llm-card" id="llm-card">
+    <div class="llm-info">
+      <div class="llm-title">🤖 KI-Modell (alle Nutzer)</div>
+      <div class="llm-current">Aktuell: <strong id="llm-current">…</strong></div>
+    </div>
+    <div class="llm-toggle">
+      <button class="llm-btn" id="llm-claude" onclick="setLlm('claude')">Claude</button>
+      <button class="llm-btn" id="llm-gemini" onclick="setLlm('gemini')">Google Gemini</button>
+    </div>
+  </div>
   <div class="stats" id="stats"></div>
   <div class="table-card">
     <table id="table">
@@ -155,6 +173,36 @@
     }
   }
 
+  function renderLlm(provider) {
+    document.getElementById('llm-current').textContent = provider === 'gemini' ? 'Google Gemini' : 'Claude';
+    document.getElementById('llm-claude').classList.toggle('active', provider !== 'gemini');
+    document.getElementById('llm-gemini').classList.toggle('active', provider === 'gemini');
+  }
+
+  async function loadLlm() {
+    try {
+      const { llm_provider } = await callAdmin({ action: 'get_settings' });
+      renderLlm(llm_provider);
+    } catch (e) {
+      document.getElementById('llm-current').textContent = '– (Fehler)';
+    }
+  }
+
+  window.setLlm = async (provider) => {
+    const label = provider === 'gemini' ? 'Google Gemini' : 'Claude';
+    if (!confirm(`KI-Modell für ALLE Nutzer auf ${label} umstellen?`)) return;
+    document.querySelectorAll('.llm-btn').forEach(b => b.disabled = true);
+    try {
+      await callAdmin({ action: 'set_llm', provider });
+      renderLlm(provider);
+      toast(`Modell umgestellt auf ${label} ✓`);
+    } catch (e) {
+      toast('Fehler: ' + e.message);
+    } finally {
+      document.querySelectorAll('.llm-btn').forEach(b => b.disabled = false);
+    }
+  };
+
   window.upgrade = async (id, email) => {
     if (!confirm(`${email} kostenlos auf die bezahlte Mitgliedschaft (1 Jahr) setzen?`)) return;
     try { await callAdmin({ action: 'upgrade', user_id: id }); toast('Upgrade erfolgreich ✓'); load(); }
@@ -172,6 +220,7 @@
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session) { window.location.href = 'login.html'; return; }
     accessToken = session.access_token;
+    loadLlm();
     load();
   })();
 </script>

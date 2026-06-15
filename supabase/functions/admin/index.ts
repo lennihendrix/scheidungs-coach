@@ -45,6 +45,25 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const action = body.action as string;
 
+  // ── SETTINGS: aktuellen LLM-Provider lesen ──
+  if (action === 'get_settings') {
+    const r = await svc('/rest/v1/app_settings?select=llm_provider&id=eq.1');
+    const rows = await r.json();
+    return json({ llm_provider: rows?.[0]?.llm_provider || 'claude' });
+  }
+
+  // ── SETTINGS: LLM-Provider global umstellen ──
+  if (action === 'set_llm') {
+    const provider = body.provider === 'gemini' ? 'gemini' : 'claude';
+    const r = await svc('/rest/v1/app_settings?id=eq.1', {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ llm_provider: provider, updated_at: new Date().toISOString() }),
+    });
+    if (!r.ok) return json({ error: 'Umstellen fehlgeschlagen', detail: await r.text() }, 500);
+    return json({ ok: true, llm_provider: provider });
+  }
+
   // ── LIST: alle User mit Metriken ──
   if (action === 'list') {
     // alle Auth-User (paginiert, bis 1000)
