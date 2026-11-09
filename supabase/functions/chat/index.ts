@@ -66,26 +66,32 @@ Deno.serve(async (req) => {
     if (body.system) geminiBody.system_instruction = { parts: [{ text: body.system as string }] };
 
     if (!streaming) {
-      const gRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) },
-      );
-      const data = await gRes.json();
-      const text = (data?.candidates?.[0]?.content?.parts || [])
-        .filter((p: { thought?: boolean }) => !p.thought)
-        .map((p: { text?: string }) => p.text || '').join('');
-      // Antwort im Anthropic-Format zurückgeben, damit der Client unverändert bleibt
-      return new Response(JSON.stringify({ content: [{ type: 'text', text }] }), {
-        status: gRes.ok ? 200 : gRes.status,
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
-    }
-
+      try {
+        const gRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) },
+        );
+        if (gRes.ok) {
+          const data = await gRes.json();
+          const text = (data?.candidates?.[0]?.content?.parts || [])
+            .filter((p: { thought?: boolean }) => !p.thought)
+            .map((p: { text?: string }) => p.text || '').join('');
+          if (text) {
+            // Antwort im Anthropic-Format zurückgeben, damit der Client unverändert bleibt
+            return new Response(JSON.stringify({ content: [{ type: 'text', text }] }), {
+              headers: { ...CORS, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      } catch { /* Gemini-Fehler → unten auf Claude zurückfallen */ }
+      // Fällt durch zu Claude (z. B. bei 429 Rate-Limit oder leerer Antwort)
+    } else {
     // Streaming: Gemini-SSE in Anthropic-SSE (content_block_delta) übersetzen
     const gRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) },
     );
+    if (gRes.ok && gRes.body) {
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
     const reader = gRes.body!.getReader();
@@ -126,9 +132,12 @@ Deno.serve(async (req) => {
       status: gRes.status,
       headers: { ...CORS, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' },
     });
+    }
+    // Gemini-Stream fehlgeschlagen (z. B. 429 Rate-Limit) → unten auf Claude zurückfallen
+    }
   }
 
-  // ── CLAUDE (Default) ──
+  // ── CLAUDE (Default / Fallback) ──
   const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
