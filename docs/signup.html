@@ -22,16 +22,12 @@
     <p>24/7 für dich da</p>
   </div>
 
-  <div class="auth-title">Konto erstellen</div>
-  <div class="auth-sub">Erstelle ein kostenloses Konto und fühl dich nicht mehr allein mit deinen ganzen Fragen.</div>
+  <div class="auth-title">Kostenlos starten</div>
+  <div class="auth-sub">Nur E-Mail und Passwort — in 20 Sekunden drin. 7 Tage gratis, keine Kreditkarte.</div>
 
   <div class="alert" id="alert"></div>
 
   <form id="signup-form" onsubmit="handleSignup(event)">
-    <div class="form-group">
-      <label class="form-label" for="name">Vorname</label>
-      <input class="form-input" id="name" type="text" placeholder="Dein Vorname" required autocomplete="given-name" />
-    </div>
     <div class="form-group">
       <label class="form-label" for="email">E-Mail</label>
       <input class="form-input" id="email" type="email" placeholder="du@beispiel.de" required autocomplete="email" />
@@ -43,15 +39,10 @@
         <button type="button" class="toggle-pw" onclick="togglePw('password', this)">👁️</button>
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="password2">Passwort bestätigen</label>
-      <div class="input-wrap">
-        <input class="form-input" id="password2" type="password" placeholder="Passwort wiederholen" required autocomplete="new-password" />
-        <button type="button" class="toggle-pw" onclick="togglePw('password2', this)">👁️</button>
-      </div>
-    </div>
-    <button class="btn btn-primary" id="submit-btn" type="submit">Konto erstellen</button>
+    <button class="btn btn-primary" id="submit-btn" type="submit">Kostenlos starten →</button>
   </form>
+
+  <div class="trust-row">🔒 100% anonym · Keine Datenweitergabe · Jederzeit kündbar</div>
 
   <div class="auth-switch">
     Bereits registriert? <a href="login.html">Jetzt anmelden</a>
@@ -86,25 +77,13 @@
     const alertEl = document.getElementById('alert');
     alertEl.className = 'alert';
 
-    const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
     const pw = document.getElementById('password').value;
-    const pw2 = document.getElementById('password2').value;
-
-    if (pw !== pw2) {
-      alertEl.textContent = 'Die Passwörter stimmen nicht überein.';
-      alertEl.className = 'alert error';
-      return;
-    }
 
     btn.disabled = true;
     btn.textContent = 'Konto wird erstellt…';
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: pw,
-      options: { data: { full_name: name } }
-    });
+    const { data, error } = await supabase.auth.signUp({ email, password: pw });
 
     if (error) {
       const msg = error.message.includes('already registered') || error.message.includes('already been registered')
@@ -113,9 +92,12 @@
       alertEl.innerHTML = msg;
       alertEl.className = 'alert error';
       btn.disabled = false;
-      btn.textContent = 'Konto erstellen';
+      btn.textContent = 'Kostenlos starten →';
       return;
     }
+
+    // Google Ads: Signup-Conversion melden
+    if (window.trackSignupConversion) window.trackSignupConversion();
 
     // If session exists → auto-confirm is on → go straight to app (ggf. Checkout)
     if (data.session) {
