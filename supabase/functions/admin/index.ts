@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     const users = usersData.users || [];
 
     // alle chat_sessions + subscriptions
-    const csRes = await svc('/rest/v1/chat_sessions?select=user_id,messages,message_count,updated_at');
+    const csRes = await svc('/rest/v1/chat_sessions?select=user_id,messages,message_count,updated_at,profile');
     const sessions = await csRes.json();
     const subRes = await svc('/rest/v1/subscriptions?select=user_id,status,current_period_end');
     const subs = await subRes.json();
@@ -112,9 +112,12 @@ Deno.serve(async (req) => {
         const trialEnd = new Date(u.created_at).getTime() + 7 * 24 * 3600 * 1000;
         membership = now <= trialEnd ? 'trial' : 'expired';
       }
+      const onboarded = !!(sess?.profile && typeof sess.profile === 'object' && Object.keys(sess.profile).length > 0);
       return {
         id: u.id,
-        email: u.email,
+        email: u.email || null,
+        is_anonymous: !!u.is_anonymous,
+        onboarded,
         created_at: u.created_at,
         membership,
         msgTotal: total,

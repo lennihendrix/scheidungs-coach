@@ -80,8 +80,9 @@
     <table id="table">
       <thead>
         <tr>
-          <th>E-Mail</th>
-          <th>Registriert</th>
+          <th>E-Mail / Gast</th>
+          <th>Onboarding</th>
+          <th>Gestartet</th>
           <th>Status</th>
           <th class="num-cell">Nachr. gesamt</th>
           <th class="num-cell">7 Tage</th>
@@ -90,7 +91,7 @@
         </tr>
       </thead>
       <tbody id="tbody">
-        <tr><td colspan="7" class="msg">Lade Nutzer…</td></tr>
+        <tr><td colspan="8" class="msg">Lade Nutzer…</td></tr>
       </tbody>
     </table>
   </div>
@@ -134,22 +135,29 @@
 
   function render(users) {
     const tbody = document.getElementById('tbody');
-    if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" class="msg">Keine Nutzer.</td></tr>'; return; }
+    if (!users.length) { tbody.innerHTML = '<tr><td colspan="8" class="msg">Keine Nutzer.</td></tr>'; return; }
 
     // Stats
     const total = users.length;
+    const guests = users.filter(u => u.is_anonymous).length;
+    const registered = total - guests;
     const active = users.filter(u => u.membership === 'active').length;
-    const trial = users.filter(u => u.membership === 'trial').length;
+    const onboarded = users.filter(u => u.onboarded).length;
     const msgs = users.reduce((s, u) => s + u.msgTotal, 0);
     document.getElementById('stats').innerHTML = `
-      <div class="stat"><div class="num">${total}</div><div class="lbl">Nutzer</div></div>
+      <div class="stat"><div class="num">${registered}</div><div class="lbl">Mit Konto</div></div>
+      <div class="stat"><div class="num">${guests}</div><div class="lbl">Gäste (ohne Konto)</div></div>
+      <div class="stat"><div class="num">${onboarded}</div><div class="lbl">Onboarding gemacht</div></div>
       <div class="stat"><div class="num">${active}</div><div class="lbl">Zahlend</div></div>
-      <div class="stat"><div class="num">${trial}</div><div class="lbl">Im Trial</div></div>
       <div class="stat"><div class="num">${msgs}</div><div class="lbl">Nachrichten gesamt</div></div>`;
 
-    tbody.innerHTML = users.map(u => `
-      <tr data-id="${u.id}" data-email="${u.email}">
-        <td class="email" title="${u.email}">${u.email}</td>
+    tbody.innerHTML = users.map(u => {
+      const label = u.is_anonymous ? '<span style="color:#6B7280">👤 Gast <span style="font-size:11px">(ohne Konto)</span></span>' : (u.email || '–');
+      const onb = u.onboarded ? '<span style="color:#059669;font-weight:700">✓</span>' : '<span style="color:#9CA3AF">–</span>';
+      return `
+      <tr data-id="${u.id}">
+        <td class="email" title="${u.email || 'Gast ' + u.id.slice(0,8)}">${label}</td>
+        <td style="text-align:center">${onb}</td>
         <td>${fmtDate(u.created_at)}</td>
         <td><span class="badge ${u.membership}">${({active:'Aktiv',trial:'Trial',expired:'Abgelaufen',canceled:'Gekündigt',past_due:'Zahlung offen'})[u.membership]||u.membership}</span></td>
         <td class="num-cell">${u.msgTotal}</td>
@@ -157,11 +165,11 @@
         <td class="num-cell">${u.msg24h}</td>
         <td>
           <div class="actions">
-            <button class="btn-sm btn-up" ${u.membership==='active'?'disabled':''} onclick="upgrade('${u.id}','${u.email}')">⬆ Upgrade</button>
-            <button class="btn-sm btn-del" onclick="del('${u.id}','${u.email}')">🗑 Löschen</button>
+            ${u.is_anonymous ? '' : `<button class="btn-sm btn-up" ${u.membership==='active'?'disabled':''} onclick="upgrade('${u.id}','${(u.email||'').replace(/'/g,'')}')">⬆ Upgrade</button>`}
+            <button class="btn-sm btn-del" onclick="del('${u.id}','${(u.email||'Gast').replace(/'/g,'')}')">🗑 Löschen</button>
           </div>
         </td>
-      </tr>`).join('');
+      </tr>`; }).join('');
   }
 
   async function load() {
