@@ -22,7 +22,12 @@
   // Signup-Conversion an Google Ads melden. LABEL noch einsetzen!
   window.GADS_SIGNUP_SEND_TO = 'AW-1059058271/JCQuCOC0mL0dEN_k__gD';
   window.trackSignupConversion = function(){
-    try { gtag('event', 'conversion', { send_to: window.GADS_SIGNUP_SEND_TO }); } catch(e){}
+    return new Promise(function(resolve){
+      var done = false, finish = function(){ if(!done){ done = true; resolve(); } };
+      try { gtag('event', 'conversion', { send_to: window.GADS_SIGNUP_SEND_TO, event_callback: finish }); }
+      catch(e){ finish(); return; }
+      setTimeout(finish, 800); // Fallback, falls kein Callback kommt
+    });
   };
 </script>
 </head>
@@ -109,8 +114,8 @@
       return;
     }
 
-    // Google Ads: Signup-Conversion melden
-    if (window.trackSignupConversion) window.trackSignupConversion();
+    // Google Ads: Signup-Conversion melden (und auf Bestätigung warten, bevor weitergeleitet wird)
+    if (window.trackSignupConversion) await window.trackSignupConversion();
 
     // If session exists → auto-confirm is on → go straight to app (ggf. Checkout)
     if (data.session) {
