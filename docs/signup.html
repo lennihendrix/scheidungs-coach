@@ -20,13 +20,9 @@
   gtag('js', new Date());
   gtag('config', 'AW-1059058271');
   // Signup-Conversion an Google Ads melden. LABEL noch einsetzen!
-  window.GADS_SIGNUP_SEND_TO = 'AW-1059058271/LABEL_HIER_EINSETZEN';
+  window.GADS_SIGNUP_SEND_TO = 'AW-1059058271/JCQuCOC0mL0dEN_k__gD';
   window.trackSignupConversion = function(){
-    try {
-      if (window.GADS_SIGNUP_SEND_TO.indexOf('LABEL_HIER') === -1) {
-        gtag('event', 'conversion', { send_to: window.GADS_SIGNUP_SEND_TO });
-      }
-    } catch(e){}
+    try { gtag('event', 'conversion', { send_to: window.GADS_SIGNUP_SEND_TO }); } catch(e){}
   };
 </script>
 </head>
