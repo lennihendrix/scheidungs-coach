@@ -342,8 +342,13 @@
 
   @media (max-width: 480px) {
     .header-reset { padding: 6px 8px; font-size: 11px; }
+    .header-save { padding: 6px 10px; font-size: 11px; }
     .btn-label-long { display: none; }
     .btn-label-short { display: inline; }
+    .header { padding: 12px 14px; gap: 10px; }
+    .header > div:nth-child(2) { display: none; } /* Wortmarke auf Mobile aus — Logo reicht */
+    .header > div:last-child { gap: 6px; }
+    #user-badge { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chat-input-area { padding: 8px 10px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
     .chat-input-wrap { padding: 8px 10px; }
     .profile-bar { display: none; }
