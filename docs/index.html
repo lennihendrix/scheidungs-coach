@@ -57,6 +57,34 @@
     white-space: nowrap;
   }
   .header-reset:hover { border-color: var(--brand); color: var(--brand); }
+  .header-save {
+    background: var(--brand); color: #fff; border: none; border-radius: 8px;
+    padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .header-save:hover { background: var(--brand-dark); }
+
+  /* Konto-sichern Modal (anonym → Konto) */
+  .acct-overlay { display: none; position: fixed; inset: 0; z-index: 250; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); align-items: center; justify-content: center; padding: 20px; }
+  .acct-overlay.active { display: flex; }
+  .acct-card { background: var(--white); border-radius: 22px; padding: 30px 26px; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; }
+  .acct-card h2 { font-size: 21px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+  .acct-card p { color: var(--text-muted); font-size: 14px; line-height: 1.5; margin-bottom: 18px; }
+  .acct-card .acct-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer; line-height: 1; }
+  .acct-field { margin-bottom: 12px; }
+  .acct-field input { width: 100%; border: 2px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 15px; font-family: inherit; color: var(--text); }
+  .acct-field input:focus { outline: none; border-color: var(--brand); }
+  .acct-btn { width: 100%; padding: 14px; background: var(--brand); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .acct-btn:hover { background: var(--brand-dark); }
+  .acct-btn:disabled { opacity: .6; cursor: default; }
+  .acct-trust { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 12px; }
+  .acct-err { background: #FEF2F2; color: #B91C1C; border: 1px solid #FCA5A5; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; display: none; }
+  .acct-err.show { display: block; }
+
+  /* Soft-Hinweis im Chat */
+  .save-nudge { background: var(--brand-light); border: 1px solid rgba(91,110,232,0.25); border-radius: 14px; padding: 14px 16px; margin: 8px auto; max-width: 480px; display: flex; align-items: center; gap: 12px; }
+  .save-nudge span { font-size: 13px; color: var(--text); line-height: 1.4; flex: 1; }
+  .save-nudge button { background: var(--brand); color: #fff; border: none; border-radius: 9px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .save-nudge .nudge-x { background: none; color: var(--text-muted); padding: 4px 8px; font-size: 16px; }
 
   .screen { display: none; flex-direction: column; flex: 1; }
   .screen.active { display: flex; }
@@ -338,7 +366,18 @@
 <meta name="theme-color" content="#5B6EE8">
 <!-- Google tag (gtag.js) - Google Ads AW-1059058271 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1059058271"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-1059058271');</script>
+<script>
+  window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+  gtag('js',new Date());gtag('config','AW-1059058271');
+  window.trackSignupConversion = function(){
+    return new Promise(function(resolve){
+      var done=false, finish=function(){ if(!done){done=true;resolve();} };
+      try { gtag('event','conversion',{ send_to:'AW-1059058271/JCQuCOC0mL0dEN_k__gD', event_callback: finish }); }
+      catch(e){ finish(); return; }
+      setTimeout(finish, 800);
+    });
+  };
+</script>
 </head>
 <body>
 
@@ -350,6 +389,7 @@
   </div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <span id="user-badge" style="font-size:12px;color:var(--text-muted);display:none"></span>
+    <button class="header-save" id="save-account-btn" onclick="openAccountModal()" style="display:none">🔒 <span class="btn-label-long">Konto sichern</span><span class="btn-label-short">Sichern</span></button>
     <button class="header-reset" id="admin-btn" onclick="window.location.href='admin.html'" style="display:none">⚙️ <span class="btn-label-long">Admin</span></button>
     <button class="header-reset" id="profile-btn" onclick="openProfilePage()" style="display:none">👤 <span class="btn-label-long">Profil</span></button>
     <button class="header-reset" id="reset-btn" onclick="resetApp()"><span class="btn-label-long">Neu starten</span><span class="btn-label-short">↺</span></button>
@@ -569,6 +609,22 @@
   </div>
 </div>
 
+<!-- KONTO SICHERN MODAL (anonym → Konto) -->
+<div class="acct-overlay" id="acct-overlay">
+  <div class="acct-card">
+    <button class="acct-close" id="acct-close-btn" onclick="closeAccountModal()">×</button>
+    <h2 id="acct-title">Sichere dein Gespräch</h2>
+    <p id="acct-sub">Hinterlege E-Mail und Passwort, damit dein Verlauf erhalten bleibt und du jederzeit zurückkommst. Dauert 20 Sekunden.</p>
+    <div class="acct-err" id="acct-err"></div>
+    <form id="acct-form" onsubmit="convertAnonToAccount(event)">
+      <div class="acct-field"><input id="acct-email" type="email" placeholder="du@beispiel.de" required autocomplete="email"></div>
+      <div class="acct-field"><input id="acct-password" type="password" placeholder="Passwort (mind. 8 Zeichen)" required minlength="8" autocomplete="new-password"></div>
+      <button class="acct-btn" id="acct-submit" type="submit">Konto sichern →</button>
+    </form>
+    <div class="acct-trust">🔒 100% anonym · Keine Datenweitergabe · Keine Kreditkarte</div>
+  </div>
+</div>
+
 <!-- PAYWALL MODAL -->
 <div class="paywall-overlay" id="paywall-overlay">
   <div class="paywall-card">
@@ -608,28 +664,44 @@
   }).catch(() => {});
 
   // ── AUTH GUARD ──
-  const { data: { session } } = await sbClient.auth.getSession();
+  let { data: { session } } = await sbClient.auth.getSession();
+  const wantsStart = new URLSearchParams(location.search).get('start') === '1';
+  // Sofort-Start: ohne Session + ?start=1 → anonymer Login, direkt in die App
+  if (!session && wantsStart) {
+    const { data: anon, error: anonErr } = await sbClient.auth.signInAnonymously();
+    if (!anonErr && anon?.session) {
+      session = anon.session;
+      history.replaceState({}, '', location.pathname);
+    }
+  }
   if (!session) {
     window.location.href = 'login.html';
   } else {
     const { data: { user: freshUser } } = await sbClient.auth.getUser();
     const user = freshUser || session.user;
-    const name = user.user_metadata?.full_name || user.email.split('@')[0];
+    window.isAnon = !!user.is_anonymous;
     const badge = document.getElementById('user-badge');
     const daysSince = Math.floor((Date.now() - new Date(user.created_at).getTime()) / 86400000);
     const trialLeft = Math.max(0, 7 - daysSince);
-    // Check subscription for badge
-    const { data: subData } = await sbClient.from('subscriptions').select('status,current_period_end,plan').eq('user_id', user.id).maybeSingle();
-    const isActive = subData?.status === 'active' && subData?.current_period_end && new Date(subData.current_period_end) > new Date();
-    const planName = subData?.plan === 'intensiv' ? 'Mentor Intensiv' : subData?.plan === 'easy' ? 'Mentor Easy' : 'Mitglied';
-    const statusText = isActive ? `✅ ${planName}` : trialLeft > 0 ? `⏰ Free-Trial · ${trialLeft} Tag${trialLeft===1?'':'e'}` : '⏰ Trial abgelaufen';
-    badge.textContent = name + '  ·  ' + statusText;
-    badge.style.display = 'inline';
-    document.getElementById('logout-btn').style.display = 'block';
-    document.getElementById('profile-btn').style.display = 'block';
-    // Admin-Button nur für Admin-User
-    if ((user.email || '').toLowerCase() === 'h.lennarz+test@gmail.com') {
-      document.getElementById('admin-btn').style.display = 'block';
+
+    if (window.isAnon) {
+      // Gast: schlanker Header, "Konto sichern"-Button statt Profil/Abmelden
+      badge.textContent = '👤 Gast';
+      badge.style.display = 'inline';
+      document.getElementById('save-account-btn').style.display = 'block';
+    } else {
+      const name = user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : 'Du');
+      const { data: subData } = await sbClient.from('subscriptions').select('status,current_period_end,plan').eq('user_id', user.id).maybeSingle();
+      const isActive = subData?.status === 'active' && subData?.current_period_end && new Date(subData.current_period_end) > new Date();
+      const planName = subData?.plan === 'intensiv' ? 'Mentor Intensiv' : subData?.plan === 'easy' ? 'Mentor Easy' : 'Mitglied';
+      const statusText = isActive ? `✅ ${planName}` : trialLeft > 0 ? `⏰ Free-Trial · ${trialLeft} Tag${trialLeft===1?'':'e'}` : '⏰ Trial abgelaufen';
+      badge.textContent = name + '  ·  ' + statusText;
+      badge.style.display = 'inline';
+      document.getElementById('logout-btn').style.display = 'block';
+      document.getElementById('profile-btn').style.display = 'block';
+      if ((user.email || '').toLowerCase() === 'h.lennarz+test@gmail.com') {
+        document.getElementById('admin-btn').style.display = 'block';
+      }
     }
   }
 
@@ -1067,10 +1139,19 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
   }
   function removeTyping() { document.getElementById('typing-msg')?.remove(); }
 
+  const ANON_FREE_MESSAGES = 3; // Anonyme Nutzer: so viele Fragen frei, dann Konto sichern
   async function sendMessage() {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
     if (!text || isStreaming) return;
+    // Hard-Gate: Gast hat sein Freikontingent erreicht → Konto sichern, um weiterzuschreiben
+    if (window.isAnon) {
+      const userMsgsSent = messages.filter(m => m.role === 'user').length;
+      if (userMsgsSent >= ANON_FREE_MESSAGES) {
+        openAccountModal(true);
+        return;
+      }
+    }
     input.value = ''; autoResize(input);
     document.getElementById('send-btn').disabled = true;
     isStreaming = true;
@@ -1136,6 +1217,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
       saveState();
       loadSuggestions();
       maybeSummarize();
+      maybeShowSaveNudge();
     } catch(e) {
       removeTyping();
       addMessage('assistant', `Fehler: ${e.message}`);
@@ -1163,6 +1245,75 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     const _sb = document.getElementById('next-8'); if (_sb) _sb.textContent = 'Zum Mentor →';
     document.getElementById('children-count-wrap').classList.remove('visible');
     renderStepIndicator();
+  }
+
+  // ── KONTO SICHERN (anonym → echtes Konto) ──
+  let nudgeShown = false;
+  function maybeShowSaveNudge() {
+    if (!window.isAnon || nudgeShown) return;
+    const userMsgs = messages.filter(m => m.role === 'user').length;
+    if (userMsgs < ANON_FREE_MESSAGES) return; // erst ab der 3. Frage
+    nudgeShown = true;
+    const c = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'save-nudge';
+    div.id = 'save-nudge';
+    div.innerHTML = `<span>💾 Damit dein Gespräch nicht verloren geht: Konto in 20 Sek. sichern.</span>
+      <button onclick="openAccountModal(false)">Sichern</button>
+      <button class="nudge-x" onclick="document.getElementById('save-nudge').remove()">×</button>`;
+    c.appendChild(div);
+    c.scrollTop = c.scrollHeight;
+  }
+
+  function openAccountModal(hardGate) {
+    const ov = document.getElementById('acct-overlay');
+    const closeBtn = document.getElementById('acct-close-btn');
+    if (hardGate) {
+      document.getElementById('acct-title').textContent = 'Konto sichern, um weiterzuschreiben';
+      document.getElementById('acct-sub').textContent = 'Du hast deine 3 kostenlosen Fragen genutzt. Hinterlege E-Mail + Passwort, um unbegrenzt weiterzuchatten — dein kompletter Verlauf bleibt erhalten.';
+      closeBtn.style.display = 'none';
+    } else {
+      document.getElementById('acct-title').textContent = 'Sichere dein Gespräch';
+      document.getElementById('acct-sub').textContent = 'Hinterlege E-Mail und Passwort, damit dein Verlauf erhalten bleibt und du jederzeit zurückkommst. Dauert 20 Sekunden.';
+      closeBtn.style.display = 'block';
+    }
+    ov.classList.add('active');
+    setTimeout(() => document.getElementById('acct-email').focus(), 100);
+  }
+  function closeAccountModal() { document.getElementById('acct-overlay').classList.remove('active'); }
+
+  async function convertAnonToAccount(e) {
+    e.preventDefault();
+    const btn = document.getElementById('acct-submit');
+    const errEl = document.getElementById('acct-err');
+    errEl.className = 'acct-err';
+    const email = document.getElementById('acct-email').value.trim();
+    const pw = document.getElementById('acct-password').value;
+    btn.disabled = true; btn.textContent = 'Wird gesichert…';
+    try {
+      const { error } = await sbClient.auth.updateUser({ email, password: pw });
+      if (error) {
+        errEl.textContent = error.message.includes('already') ? 'Diese E-Mail ist bereits registriert. Melde dich stattdessen an.' : ('Fehler: ' + error.message);
+        errEl.className = 'acct-err show';
+        btn.disabled = false; btn.textContent = 'Konto sichern →';
+        return;
+      }
+      // Erfolg: Gast → echtes Konto. Google-Ads-Conversion melden.
+      if (window.trackSignupConversion) await window.trackSignupConversion();
+      window.isAnon = false;
+      await saveState();
+      closeAccountModal();
+      document.getElementById('save-account-btn').style.display = 'none';
+      document.getElementById('logout-btn').style.display = 'block';
+      document.getElementById('profile-btn').style.display = 'block';
+      const b = document.getElementById('user-badge');
+      if (b) b.textContent = (email.split('@')[0]) + '  ·  ⏰ Free-Trial · 7 Tage';
+      const n = document.getElementById('save-nudge'); if (n) n.remove();
+    } catch (err) {
+      errEl.textContent = 'Fehler: ' + err.message;
+      errEl.className = 'acct-err show';
+      btn.disabled = false; btn.textContent = 'Konto sichern →';
+    }
   }
 
   async function openProfilePage() {
@@ -1263,7 +1414,8 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     sendMessage, handleKey, autoResize,
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved,
-    openProfilePage, closeProfilePage, openEditProfileFromPage, cancelSubscription
+    openProfilePage, closeProfilePage, openEditProfileFromPage, cancelSubscription,
+    openAccountModal, closeAccountModal, convertAnonToAccount
   });
 })();
 </script>
