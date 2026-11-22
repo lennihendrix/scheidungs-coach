@@ -1071,11 +1071,17 @@ Mentor: "Lass uns da gemeinsam draufschauen, damit du eine Orientierung bekommst
 
   // ── API CALL via Supabase Edge Function ──
   async function callAnthropic(body) {
+    // Für echte Chat-Nachrichten das User-Token senden, damit das Limit serverseitig greift
+    let token = SUPABASE_KEY;
+    if (body.stream) {
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (session?.access_token) token = session.access_token;
+    }
     return fetch(`${FUNCTIONS_URL}/${body.stream ? 'chat' : 'suggestions'}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body)
     });
@@ -1170,6 +1176,28 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
         messages: messages.map(m=>({role:m.role,content:m.content}))
       });
       removeTyping();
+
+      // Serverseitiges Limit erreicht
+      if (res.status === 429) {
+        const d = await res.json().catch(() => ({}));
+        // unbeantwortete Frage zurücknehmen (Anzeige + State)
+        if (messages.length && messages[messages.length-1].role === 'user') { messages.pop(); totalMsgCount = Math.max(0, totalMsgCount-1); }
+        const ubs = document.querySelectorAll('#chat-messages .message.user');
+        if (ubs.length) ubs[ubs.length-1].remove();
+        if (d.reason === 'anon') {
+          openAccountModal(true);
+        } else if (d.reason === 'trial_expired') {
+          showPaywall();
+        } else if (d.reason === 'monthly') {
+          addMessage('assistant', 'Du hast dein Monatslimit von 150 Nachrichten erreicht. Mit Mentor Intensiv geht es unbegrenzt weiter.');
+          showPaywall();
+        } else {
+          addMessage('assistant', 'Limit erreicht. Bitte sichere dein Konto oder wähle einen Tarif.');
+        }
+        isStreaming = false;
+        document.getElementById('send-btn').disabled = false;
+        return;
+      }
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));

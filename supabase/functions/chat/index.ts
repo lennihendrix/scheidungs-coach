@@ -3,11 +3,83 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || '';
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+// Nachrichten-Limits (nur echte Chat-Nachrichten / streaming)
+const ANON_LIMIT = 3;       // Gäste: 3 Fragen, dann Konto nötig
+const EASY_LIMIT = 150;     // Mentor Easy: 150 / Monat
+// Intensiv + laufender 7-Tage-Trial = unbegrenzt; abgelaufener Trial = gesperrt
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type',
 };
+
+// Serverseitige Limit-Prüfung: identifiziert den User, ermittelt Tarif + Zähler,
+// blockiert bei Überschreitung und zählt sonst hoch. Gibt null zurück = erlaubt.
+async function checkAndCountLimit(authHeader: string | null): Promise<{ reason: string } | null> {
+  try {
+    if (!authHeader) return { reason: 'unauthorized' };
+    // 1) User aus Token
+    const uRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { Authorization: authHeader, apikey: ANON_KEY } });
+    if (!uRes.ok) return { reason: 'unauthorized' };
+    const u = await uRes.json();
+    const uid: string = u?.id;
+    if (!uid) return { reason: 'unauthorized' };
+    const isAnon = !!u.is_anonymous;
+    const createdAt = new Date(u.created_at).getTime();
+    const now = Date.now();
+
+    // 2) Abo
+    const sRes = await fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${uid}&select=status,plan,current_period_end&limit=1`,
+      { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
+    const sub = (await sRes.json())?.[0];
+    const active = sub?.status === 'active' && sub?.current_period_end && new Date(sub.current_period_end).getTime() > now;
+
+    // 3) Limit bestimmen (null = unbegrenzt)
+    let limit: number | null;
+    if (isAnon) {
+      limit = ANON_LIMIT;
+    } else if (active && sub.plan === 'intensiv') {
+      limit = null;
+    } else if (active && sub.plan === 'easy') {
+      limit = EASY_LIMIT;
+    } else if (active) {
+      limit = null; // aktives Abo ohne bekannten Plan → durchlassen
+    } else {
+      // kein aktives Abo → Trial-Fenster prüfen
+      const trialEnd = createdAt + 7 * 24 * 3600 * 1000;
+      if (now <= trialEnd) limit = null; // laufender Trial = voller Zugang
+      else return { reason: 'trial_expired' };
+    }
+
+    // 4) Zähler lesen (für begrenzte Tarife) + hochzählen
+    const cRes = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${uid}&select=period_count,period_start&limit=1`,
+      { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
+    const row = (await cRes.json())?.[0];
+    let periodCount = row?.period_count || 0;
+    let periodStart = row?.period_start ? new Date(row.period_start).getTime() : 0;
+
+    // Monatsfenster zurücksetzen (nicht bei anon — dort ist es ein Lifetime-Zähler)
+    if (!isAnon && (!periodStart || now - periodStart > 30 * 24 * 3600 * 1000)) {
+      periodCount = 0; periodStart = now;
+    }
+
+    if (limit !== null && periodCount >= limit) {
+      return { reason: isAnon ? 'anon' : 'monthly' };
+    }
+
+    // hochzählen (upsert über user_id)
+    await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions?on_conflict=user_id`, {
+      method: 'POST',
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ user_id: uid, period_count: periodCount + 1, period_start: new Date(periodStart || now).toISOString() }),
+    });
+    return null; // erlaubt
+  } catch {
+    return null; // im Zweifel durchlassen (keine User-Blockade bei Infra-Fehler)
+  }
+}
 
 // Globalen LLM-Provider aus app_settings lesen (Default: claude)
 async function getProvider(): Promise<'claude' | 'gemini'> {
@@ -38,6 +110,17 @@ Deno.serve(async (req) => {
   }
 
   const streaming = body.stream === true;
+
+  // Nur echte Chat-Nachrichten (streaming) limitieren; interne Calls (Zusammenfassung) nicht
+  if (streaming) {
+    const limited = await checkAndCountLimit(req.headers.get('Authorization'));
+    if (limited) {
+      return new Response(JSON.stringify({ error: 'limit_reached', reason: limited.reason }), {
+        status: 429, headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   const provider = await getProvider();
 
   // ── GEMINI ──
