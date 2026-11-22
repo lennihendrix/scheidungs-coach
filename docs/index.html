@@ -426,6 +426,7 @@
       <div class="step-title">Wie ist deine aktuelle Situation?</div>
       <div class="step-sub">In welcher Phase der Trennung befindest du dich?</div>
       <div class="option-grid single">
+        <button class="option-btn" data-field="status" data-value="zusammen" onclick="selectOption(this)"><span class="opt-emoji">💭</span>Noch zusammen – aber am Zweifeln</button>
         <button class="option-btn" data-field="status" data-value="trennung" onclick="selectOption(this)"><span class="opt-emoji">💔</span>Frisch getrennt – wir leben noch zusammen</button>
         <button class="option-btn" data-field="status" data-value="ausgezogen" onclick="selectOption(this)"><span class="opt-emoji">🏠</span>Getrennt & einer ist ausgezogen</button>
         <button class="option-btn" data-field="status" data-value="scheidung" onclick="selectOption(this)"><span class="opt-emoji">⚖️</span>Scheidungsverfahren läuft</button>
@@ -865,7 +866,7 @@
     const bar = document.getElementById('profile-bar');
     const genderEmoji = {male:'👨',female:'👩',diverse:'🧑',no_answer:'🙂'}[profile.gender]||'🙂';
     const genderLabel = {male:'Mann',female:'Frau',diverse:'Divers',no_answer:'Anonym'}[profile.gender]||'';
-    const statusLabel = {trennung:'Getrennt',ausgezogen:'Ausgezogen',scheidung:'Scheidung läuft',geschieden:'Geschieden'}[profile.status]||'';
+    const statusLabel = {zusammen:'Noch zusammen',trennung:'Getrennt',ausgezogen:'Ausgezogen',scheidung:'Scheidung läuft',geschieden:'Geschieden'}[profile.status]||'';
     const childLabel = profile.children==='yes' ? `👶 ${profile.childrenCount||'1'} Kind${(profile.childrenCount||1)>1?'er':''}` : '';
     bar.innerHTML = [
       `<span class="profile-badge">${genderEmoji} ${genderLabel}</span>`,
@@ -967,7 +968,7 @@
     const bar = document.getElementById('profile-bar');
     const genderEmoji = {male:'👨',female:'👩',diverse:'🧑',no_answer:'🙂'}[profile.gender]||'🙂';
     const genderLabel = {male:'Mann',female:'Frau',diverse:'Divers',no_answer:'Anonym'}[profile.gender]||'';
-    const statusLabel = {trennung:'Getrennt',ausgezogen:'Ausgezogen',scheidung:'Scheidung läuft',geschieden:'Geschieden'}[profile.status]||'';
+    const statusLabel = {zusammen:'Noch zusammen',trennung:'Getrennt',ausgezogen:'Ausgezogen',scheidung:'Scheidung läuft',geschieden:'Geschieden'}[profile.status]||'';
     const childLabel = profile.children==='yes' ? `👶 ${profile.childrenCount||'1'} Kind${(profile.childrenCount||1)>1?'er':''}` : '';
     bar.innerHTML = [
       `<span class="profile-badge">${genderEmoji} ${genderLabel}</span>`,
@@ -999,7 +1000,7 @@
   // ── SYSTEM PROMPT ──
   function buildSystemPrompt() {
     const gender = {male:'Mann',female:'Frau',diverse:'diverse Person',no_answer:'Person'}[profile.gender]||'Person';
-    const status = {trennung:'in der Trennungsphase',ausgezogen:'bereits ausgezogen',scheidung:'im laufenden Scheidungsverfahren',geschieden:'bereits geschieden'}[profile.status]||'in einer Trennungssituation';
+    const status = {zusammen:'noch in der Beziehung, aber am Zweifeln, ob die Ehe weitergehen soll',trennung:'in der Trennungsphase',ausgezogen:'bereits ausgezogen',scheidung:'im laufenden Scheidungsverfahren',geschieden:'bereits geschieden'}[profile.status]||'in einer Trennungssituation';
     const since = profile.since ? `seit ${profile.since}` : '';
     const children = profile.children==='yes' ? `hat ${profile.childrenCount||'ein oder mehrere'} Kind(er)` : 'hat keine Kinder';
     const concerns = profile.concerns?.length ? `- Hauptanliegen: ${Array.isArray(profile.concerns)?profile.concerns.join(', '):profile.concerns}` : '';
@@ -1085,7 +1086,7 @@ Mentor: "Lass uns da gemeinsam draufschauen, damit du eine Orientierung bekommst
     const container = document.getElementById('suggestions');
     container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Wird geladen…</span>';
     const gender = {male:'Mann',female:'Frau',diverse:'diverse Person'}[profile.gender]||'Person';
-    const status = {trennung:'Trennungsphase',ausgezogen:'ausgezogen',scheidung:'Scheidungsverfahren',geschieden:'geschieden'}[profile.status]||'Trennung';
+    const status = {zusammen:'am Zweifeln an der Ehe',trennung:'Trennungsphase',ausgezogen:'ausgezogen',scheidung:'Scheidungsverfahren',geschieden:'geschieden'}[profile.status]||'Trennung';
     const children = profile.children==='yes'?'mit Kindern':'ohne Kinder';
     const recent = messages.slice(-6).map(m=>`${m.role}: ${m.content}`).join('\n');
     try {
