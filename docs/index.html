@@ -1097,21 +1097,38 @@ Mentor: "Lass uns da gemeinsam draufschauen, damit du eine Orientierung bekommst
     const container = document.getElementById('suggestions');
     container.innerHTML = '<span style="color:var(--text-muted);font-size:13px">Wird geladen…</span>';
     const gender = {male:'Mann',female:'Frau',diverse:'diverse Person'}[profile.gender]||'Person';
-    const status = {zusammen:'am Zweifeln an der Ehe',trennung:'Trennungsphase',ausgezogen:'ausgezogen',scheidung:'Scheidungsverfahren',geschieden:'geschieden'}[profile.status]||'Trennung';
-    const children = profile.children==='yes'?'mit Kindern':'ohne Kinder';
+    const status = {zusammen:'noch zusammen, aber am Zweifeln an der Ehe',trennung:'Trennungsphase',ausgezogen:'getrennt, einer ausgezogen',scheidung:'Scheidungsverfahren läuft',geschieden:'bereits geschieden'}[profile.status]||'Trennung';
+    const children = profile.children==='yes'?`mit ${profile.childrenCount||''} Kind(ern)`:'ohne Kinder';
+    const exCommMap = {peaceful:'sachlich/friedlich',tense:'angespannt/schwierig',none:'kaum oder kein Kontakt'};
+    const lawyerMap = {yes_both:'beide haben einen Anwalt',yes_only_me:'nur der Nutzer hat einen Anwalt',searching:'sucht gerade einen Anwalt',no:'hat noch keinen Anwalt'};
+    const propertyMap = {house:'gemeinsame Immobilie (Haus/Wohnung)',other:'gemeinsame Konten/Sonstiges',no:'kein gemeinsames Eigentum'};
+    const concerns = Array.isArray(profile.concerns) && profile.concerns.length ? profile.concerns.join(', ') : '';
+    const profileLines = [
+      `- Person: ${gender}, ${status}, ${children}`,
+      profile.since ? `- Seit: ${profile.since}` : '',
+      profile.exComm ? `- Kommunikation mit Ex: ${exCommMap[profile.exComm]||profile.exComm}` : '',
+      profile.lawyer ? `- Anwalt: ${lawyerMap[profile.lawyer]||profile.lawyer}` : '',
+      profile.property ? `- Eigentum: ${propertyMap[profile.property]||profile.property}` : '',
+      concerns ? `- SELBST GENANNTE HAUPTANLIEGEN: ${concerns}` : '',
+    ].filter(Boolean).join('\n');
     const recent = messages.slice(-6).map(m=>`${m.role}: ${m.content}`).join('\n');
     try {
       const res = await callAnthropic({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 400,
-        messages: [{role:'user', content:`Du hilfst einem ${gender} in der ${status} ${children}. Generiere 5 kurze Fragen (max. 8 Wörter), die diese Person ihrem Scheidungsmentor stellen würde — also Nachrichten, die der User in das Chat-Eingabefeld tippt, z.B. "Was passiert beim Trennungsjahr?" oder "Wie berechne ich meinen Unterhalt?".
+        messages: [{role:'user', content:`Generiere 5 kurze Fragen (max. 9 Wörter), die diese Person ihrem Scheidungsmentor stellen würde — also Nachrichten, die der User ins Chat-Eingabefeld tippt, z.B. "Was passiert mit dem Haus?" oder "Wie berechne ich meinen Unterhalt?".
+
+PROFIL DER PERSON:
+${profileLines}
 
 Bisheriger Chatverlauf:
 ${recent||'(noch kein Chat)'}
 
+Schneide die Fragen KONKRET auf dieses Profil zu. Beispiele: angespannter Ex → eine Deeskalations-/Kommunikationsfrage; noch kein Anwalt → "Brauche ich überhaupt einen Anwalt?"; gemeinsame Immobilie → "Was passiert mit dem Haus?"; "noch am Zweifeln" → Entscheidungs-/Orientierungsfragen.
+
 Generiere GENAU in dieser Reihenfolge:
-- Fragen 1–3: sinnvolle Folgefragen basierend auf dem bisherigen Gespräch (was würde die Person als nächstes fragen wollen?). Falls kein Chat: konkrete Einstiegsfragen zur Situation.
-- Fragen 4–5: Fragen zu völlig anderen Themen (Finanzen, Emotionen, Kinder, Recht, Wohnung, Neustart) — für Menschen, die nicht wissen was sie noch fragen könnten.
+- Fragen 1–3: Falls schon ein Chat läuft: sinnvolle Folgefragen zum Gespräch. Falls noch kein Chat: Einstiegsfragen, die DIREKT die selbst genannten Hauptanliegen und die konkrete Situation aufgreifen.
+- Fragen 4–5: Fragen zu anderen Dimensionen (Finanzen, Emotionen, Kinder, Recht, Wohnung, Neustart), die die Person noch nicht bedacht hat.
 
 Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}]
       });
