@@ -282,6 +282,9 @@
     border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
   .user .msg-bubble { background: var(--brand); color: white; border-bottom-right-radius: 4px; }
+  .msg-col { display: flex; flex-direction: column; min-width: 0; }
+  .message.user .msg-col { align-items: flex-end; }
+  .msg-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; padding: 0 5px; }
 
   .typing-indicator { display: flex; gap: 4px; padding: 4px 2px; }
   .typing-indicator span {
@@ -890,7 +893,7 @@
       container.innerHTML = `<div class="welcome-card"><div class="wc-emoji">👋</div><h3>${isF?'Hallo! Ich bin deine Mentorin.':'Hallo! Ich bin dein Mentor.'}</h3><p>Ich bin hier, um dir zuzuhören und zu helfen.</p></div>`;
     } else {
       // Show last 30 messages visually (performance)
-      messages.slice(-30).forEach(m => addMessage(m.role, m.content));
+      messages.slice(-30).forEach(m => addMessage(m.role, m.content, m.ts));
     }
 
     // Switch screens
@@ -1060,7 +1063,8 @@ Du hast den bisherigen Gesprächsverlauf vorliegen. Behandle ihn als dein verlä
 - Bleib in deinen Aussagen konsistent zu allem, was bereits besprochen wurde.
 
 # INTERAKTIONS- UND KOMMUNIKATIONSREGELN
-- Antwortlänge: Wichtiger als Kürze ist, dass deine Antwort RICHTIG, vollständig und wirklich hilfreich ist. Nimm dir den Raum, den das Thema braucht — erkläre gründlich, gehe in die Tiefe, lass nichts Wichtiges weg. Künstlich kürzen sollst du NICHT. Bleib dabei aber warm, klar und strukturiert (z. B. mit Absätzen oder kurzen Aufzählungen), nicht abgehakt oder stichpunktartig-kalt.
+- Schreibstil — wie ein Mensch, NICHT wie eine KI: Schreib, als würdest du einem vertrauten Menschen eine Nachricht tippen. Benutze NIEMALS Markdown, Aufzählungszeichen, nummerierte Listen, Fett-/Kursiv-Markierungen, Überschriften, Trennlinien ("---") oder Meta-Labels wie "Kurze Antwort:" / "Fazit:". Schreib in natürlichen, zusammenhängenden Sätzen und kurzen Absätzen — flüssig und warm, so wie echte Menschen in einem Chat schreiben. Emojis nur sehr sparsam und natürlich, wenn überhaupt.
+- Antwortlänge: Wichtiger als Kürze ist, dass deine Antwort RICHTIG, vollständig und wirklich hilfreich ist. Nimm dir den Raum, den das Thema braucht — erkläre gründlich, lass nichts Wichtiges weg. Künstlich kürzen sollst du NICHT. Aber verpacke es in natürliche Prosa, nicht in Stichpunkte.
 - Selbstreflexion: Wenn es natürlich passt, lade den Nutzer mit einer offenen Frage zum Weiterdenken ein — aber nur, wenn es sich organisch anfühlt, nicht als Pflicht-Formel am Ende jeder Nachricht.
 - Nachrichten-Check (Deeskalation): Wenn der Nutzer dich bittet, eine Nachricht an den Ex-Partner zu schreiben oder zu überprüfen, optimiere sie nach folgenden Kriterien: Sachlich, kurz, frei von Vorwürfen, Ich-Botschaften statt Du-Anschuldigungen, Fokus auf das gemeinsame Ziel (z. B. die Kinder).
 - Antworte immer auf Deutsch.
@@ -1146,11 +1150,12 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
   }
 
   // ── CHAT ──
-  function addMessage(role, content) {
+  function addMessage(role, content, ts) {
     const avatarEmoji = role==='assistant' ? '🤝' : ({male:'👨',female:'👩'}[profile.gender]||'🙂');
+    const time = new Date(ts || Date.now()).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     const div = document.createElement('div');
     div.className = `message ${role}`;
-    div.innerHTML = `<div class="msg-avatar">${avatarEmoji}</div><div class="msg-bubble">${escapeHtml(content)}</div>`;
+    div.innerHTML = `<div class="msg-avatar">${avatarEmoji}</div><div class="msg-col"><div class="msg-bubble">${escapeHtml(content)}</div><div class="msg-time">${time}</div></div>`;
     const c = document.getElementById('chat-messages');
     c.appendChild(div);
     c.scrollTop = c.scrollHeight;
@@ -1158,6 +1163,34 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
   }
 
   function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+  // Antwort menschlich zeigen: lange Antworten in 2 kurze Bubbles mit kleiner Tipp-Pause dazwischen
+  function splitReply(text) {
+    text = (text || '').trim();
+    if (text.length < 320) return [text];
+    const paras = text.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+    if (paras.length < 2) return [text];
+    const mid = text.length / 2;
+    let acc = 0, splitIdx = 1, best = Infinity;
+    for (let i = 0; i < paras.length - 1; i++) {
+      acc += paras[i].length + 2;
+      const dist = Math.abs(acc - mid);
+      if (dist < best) { best = dist; splitIdx = i + 1; }
+    }
+    return [paras.slice(0, splitIdx).join('\n\n'), paras.slice(splitIdx).join('\n\n')];
+  }
+  async function revealReply(text) {
+    const parts = splitReply(text);
+    if (!parts[0]) { addMessage('assistant', '…'); return; }
+    for (let i = 0; i < parts.length; i++) {
+      if (i > 0) {
+        addTyping();
+        await new Promise(r => setTimeout(r, 700 + Math.min(parts[i].length * 6, 1300)));
+        removeTyping();
+      }
+      addMessage('assistant', parts[i]);
+    }
+  }
 
   function addTyping() {
     const div = document.createElement('div');
@@ -1235,12 +1268,13 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
         return;
       }
 
-      const bubble = addMessage('assistant', '');
+      // Antwort im Hintergrund generieren — Tipp-Indikator bleibt sichtbar (wirkt menschlich,
+      // nicht wie Wort-für-Wort-KI-Stream). Danach auf einmal zeigen.
+      addTyping();
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = '';
       let buf = '';
-      const chatEl = document.getElementById('chat-messages');
 
       while (true) {
         const { done, value } = await reader.read();
@@ -1256,12 +1290,12 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
             const ev = JSON.parse(raw);
             if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
               fullText += ev.delta.text;
-              bubble.innerHTML = escapeHtml(fullText);
-              chatEl.scrollTop = chatEl.scrollHeight;
             }
           } catch {}
         }
       }
+      removeTyping();
+      await revealReply(fullText);
 
       messages.push({role:'assistant', content:fullText, ts:new Date().toISOString()});
       totalMsgCount++;
