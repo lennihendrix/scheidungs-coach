@@ -421,9 +421,9 @@
 <!-- ONBOARDING -->
 <div id="screen-onboarding" class="screen">
   <div class="onboarding-hero">
-    <div class="emoji">🤝</div>
-    <h1>Du bist nicht allein.</h1>
-    <p>Beantworte ein paar kurze Fragen, damit ich dir wirklich helfen kann — persönlich und passend zu deiner Situation.</p>
+    <div class="emoji" id="ob-emoji">🤝</div>
+    <h1 id="ob-title">Du bist nicht allein.</h1>
+    <p id="ob-sub">Beantworte ein paar kurze Fragen, damit ich dir wirklich helfen kann — persönlich und passend zu deiner Situation.</p>
   </div>
 
   <div class="form-card">
@@ -558,7 +558,7 @@
       </div>
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="prevStep(7)">← Zurück</button>
-        <button class="btn btn-primary" id="next-8" onclick="startChat()" disabled>Zum Mentor →</button>
+        <button class="btn btn-primary" id="next-8" onclick="finishOnboarding()" disabled>Zum Mentor →</button>
       </div>
     </div>
   </div>
@@ -934,6 +934,7 @@
   let memorySummary = '';
   let isStreaming = false;
   let isEditing = false;
+  let gateMode = false; // true = Onboarding läuft als Gate nach den 3 Gratis-Fragen (Zugang kommt zuletzt)
 
   // ── INIT: try to restore saved state ──
   const restored = await restoreState();
@@ -952,8 +953,14 @@
       if (inp && !isStreaming) { inp.value = directQ; sendMessage(); }
     }, 350);
   } else if (!restored) {
-    document.getElementById('screen-onboarding').classList.add('active');
-    renderStepIndicator();
+    if (window.isAnon) {
+      // Gast: ohne Onboarding direkt in den Chat. Die Fragen zur Person kommen
+      // erst nach den 3 freien Antworten – gebündelt mit dem kostenlosen Zugang.
+      startChat();
+    } else {
+      document.getElementById('screen-onboarding').classList.add('active');
+      renderStepIndicator();
+    }
   }
 
   // ── STEP INDICATOR ──
@@ -1243,7 +1250,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     if (window.isAnon) {
       const userMsgsSent = messages.filter(m => m.role === 'user').length;
       if (userMsgsSent >= ANON_FREE_MESSAGES) {
-        openAccountModal(true);
+        startGateOnboarding();
         return;
       }
     }
@@ -1273,7 +1280,7 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
         const ubs = document.querySelectorAll('#chat-messages .message.user');
         if (ubs.length) ubs[ubs.length-1].remove();
         if (d.reason === 'anon') {
-          openAccountModal(true);
+          startGateOnboarding();
         } else if (d.reason === 'trial_expired') {
           showPaywall();
         } else if (d.reason === 'monthly') {
@@ -1349,7 +1356,10 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
   function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
 
   function resetApp() {
-    profile = {}; messages = []; totalMsgCount = 0; memorySummary = ''; currentStep = 1; isEditing = false;
+    profile = {}; messages = []; totalMsgCount = 0; memorySummary = ''; currentStep = 1; isEditing = false; gateMode = false;
+    const _em = document.getElementById('ob-emoji'); if (_em) _em.textContent = '🤝';
+    const _ot = document.getElementById('ob-title'); if (_ot) _ot.textContent = 'Du bist nicht allein.';
+    const _os = document.getElementById('ob-sub'); if (_os) _os.textContent = 'Beantworte ein paar kurze Fragen, damit ich dir wirklich helfen kann — persönlich und passend zu deiner Situation.';
     document.getElementById('screen-chat').classList.remove('active');
     document.getElementById('screen-onboarding').classList.add('active');
     document.getElementById('reset-btn').style.display = 'none';
@@ -1376,19 +1386,51 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     const div = document.createElement('div');
     div.className = 'save-nudge';
     div.id = 'save-nudge';
-    div.innerHTML = `<span>💾 Damit dein Gespräch nicht verloren geht: Konto in 20 Sek. sichern.</span>
-      <button onclick="openAccountModal(false)">Sichern</button>
+    div.innerHTML = `<span>💡 Erzähl mir kurz ein paar Dinge über dich — dann antworte ich dir viel genauer. Inkl. kostenlosem Zugang.</span>
+      <button onclick="startGateOnboarding()">Jetzt freischalten →</button>
       <button class="nudge-x" onclick="document.getElementById('save-nudge').remove()">×</button>`;
     c.appendChild(div);
     c.scrollTop = c.scrollHeight;
+  }
+
+  // Nach den 3 Gratis-Fragen: erst die Fragen zur Person (Onboarding), dann zuletzt der Zugang.
+  function startGateOnboarding() {
+    gateMode = true;
+    currentStep = 1;
+    const n = document.getElementById('save-nudge'); if (n) n.remove();
+    // Hero auf das Personalisierungs-Argument umstellen
+    const em = document.getElementById('ob-emoji'); if (em) em.textContent = '🎯';
+    const t = document.getElementById('ob-title'); if (t) t.textContent = 'Jetzt wird es persönlich.';
+    const s = document.getElementById('ob-sub'); if (s) s.textContent = 'Damit ich dir viel genauer helfen kann, beantworte kurz ein paar Fragen über dich — danach schaltest du mit deinem kostenlosen Zugang unbegrenzt weiter frei.';
+    // Schritte zurücksetzen
+    document.querySelectorAll('.step').forEach(st => st.classList.remove('active'));
+    document.getElementById('step-1').classList.add('active');
+    const fb = document.getElementById('next-8'); if (fb) fb.textContent = 'Kostenlos weiter →';
+    renderStepIndicator();
+    // Screen wechseln: Chat → Onboarding
+    document.getElementById('screen-chat').classList.remove('active');
+    document.getElementById('screen-profile').classList.remove('active');
+    document.getElementById('screen-onboarding').classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  // Letzter Onboarding-Button
+  function finishOnboarding() {
+    if (gateMode) {
+      // Profil ist erfasst → als Gast speichern, dann als letzten Schritt den Zugang machen.
+      saveState();
+      openAccountModal(true);
+    } else {
+      startChat();
+    }
   }
 
   function openAccountModal(hardGate) {
     const ov = document.getElementById('acct-overlay');
     const closeBtn = document.getElementById('acct-close-btn');
     if (hardGate) {
-      document.getElementById('acct-title').textContent = 'Konto sichern, um weiterzuschreiben';
-      document.getElementById('acct-sub').textContent = 'Du hast deine 3 kostenlosen Fragen genutzt. Hinterlege E-Mail + Passwort, um unbegrenzt weiterzuchatten — dein kompletter Verlauf bleibt erhalten.';
+      document.getElementById('acct-title').textContent = 'Fast geschafft — dein kostenloser Zugang';
+      document.getElementById('acct-sub').textContent = 'Nur noch E-Mail + Passwort, dann antworte ich dir ab jetzt persönlich auf deine Situation — unbegrenzt und dein kompletter Verlauf bleibt erhalten.';
       closeBtn.style.display = 'none';
     } else {
       document.getElementById('acct-title').textContent = 'Sichere dein Gespräch';
@@ -1427,6 +1469,11 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
       const b = document.getElementById('user-badge');
       if (b) b.textContent = (email.split('@')[0]) + '  ·  ⏰ Free-Trial · 7 Tage';
       const n = document.getElementById('save-nudge'); if (n) n.remove();
+      // Kam aus dem Gate-Onboarding? → zurück in den Chat, jetzt mit erfasstem Profil.
+      if (gateMode) {
+        gateMode = false;
+        startChat();
+      }
     } catch (err) {
       errEl.textContent = 'Fehler: ' + err.message;
       errEl.className = 'acct-err show';
@@ -1533,7 +1580,8 @@ Gib NUR die 5 Fragen aus, eine pro Zeile, ohne Nummerierung oder Erklärungen.`}
     loadSuggestions, addMessage, escapeHtml, addTyping, removeTyping,
     buildSystemPrompt, callAnthropic, saveState, restoreState, renderChatFromSaved,
     openProfilePage, closeProfilePage, openEditProfileFromPage, cancelSubscription,
-    openAccountModal, closeAccountModal, convertAnonToAccount
+    openAccountModal, closeAccountModal, convertAnonToAccount,
+    startGateOnboarding, finishOnboarding
   });
 })();
 </script>
