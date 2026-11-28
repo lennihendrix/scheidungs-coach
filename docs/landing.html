@@ -426,8 +426,10 @@
   .q-card { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
   .q-card h3 { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
   .q-card ul { list-style: none; padding: 0; margin: 0; }
-  .q-card li { font-size: 14px; color: #374151; line-height: 1.4; padding: 8px 0 8px 20px; position: relative; border-top: 1px solid var(--border); }
+  .q-card li { font-size: 14px; color: #374151; line-height: 1.4; padding: 8px 4px 8px 20px; position: relative; border-top: 1px solid var(--border); cursor: pointer; border-radius: 8px; transition: background .12s, color .12s; }
   .q-card li:first-child { border-top: none; }
+  .q-card li:hover { background: rgba(91,110,232,0.08); color: var(--brand); }
+  .q-card li:hover::after { content: '"  →'; }
   .q-card li::before { content: '„'; position: absolute; left: 2px; color: var(--brand); font-weight: 800; font-size: 18px; line-height: 1.1; }
   .q-card li::after { content: '"'; color: var(--brand); font-weight: 800; }
   .questions-cta { text-align: center; margin-top: 44px; }
@@ -744,6 +746,25 @@
       i = (i + 1) % slides.length;
       slides[i].classList.add('active');
     }, 8000);
+  })();
+</script>
+
+<script>
+  // Klick auf eine Beispielfrage → direkt in die App, Frage sofort als 1. Nachricht abfeuern.
+  (function () {
+    document.querySelectorAll('.q-card li').forEach(function (li) {
+      li.setAttribute('role', 'button');
+      li.setAttribute('tabindex', '0');
+      function go() {
+        var q = (li.textContent || '').trim();
+        if (!q) return;
+        window.location.href = 'index.html?start=1&q=' + encodeURIComponent(q);
+      }
+      li.addEventListener('click', go);
+      li.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+      });
+    });
   })();
 </script>
 

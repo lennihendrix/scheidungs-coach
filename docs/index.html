@@ -874,8 +874,10 @@
         .limit(1)
         .maybeSingle();
       if (error || !data) return false;
-      if (data.profile && Object.keys(data.profile).length > 0) {
-        profile = data.profile;
+      const hasProfile = data.profile && Object.keys(data.profile).length > 0;
+      const hasMsgs = Array.isArray(data.messages) && data.messages.length > 0;
+      if (hasProfile || hasMsgs) {
+        profile = data.profile || {};
         messages = Array.isArray(data.messages) ? data.messages : [];
         totalMsgCount = (typeof data.message_count === 'number') ? data.message_count : messages.length;
         memorySummary = data.memory_summary || '';
@@ -935,7 +937,21 @@
 
   // ── INIT: try to restore saved state ──
   const restored = await restoreState();
-  if (!restored) {
+  // Direkt-Frage von der Landing (?q=...): Onboarding überspringen, Frage sofort abfeuern
+  const directQ = (new URLSearchParams(location.search).get('q') || '').trim();
+  if (directQ) {
+    // URL säubern, damit ein Reload die Frage nicht erneut abfeuert
+    try { history.replaceState({}, '', location.pathname); } catch (e) {}
+    if (!restored) {
+      // Noch kein Chat: direkt ins Chat-Fenster, ohne Onboarding
+      startChat();
+    }
+    // Frage als erste Nachricht senden
+    setTimeout(() => {
+      const inp = document.getElementById('chat-input');
+      if (inp && !isStreaming) { inp.value = directQ; sendMessage(); }
+    }, 350);
+  } else if (!restored) {
     document.getElementById('screen-onboarding').classList.add('active');
     renderStepIndicator();
   }
